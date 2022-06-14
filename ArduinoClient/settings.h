@@ -33,4 +33,5 @@ constexpr char SECRET_SSID[] = "";
 constexpr char SECRET_PASS[] = "";
 
 // Please enter your server IP and port number in the following constants.
-constexpr byte SERVER_IP[] = {0, 0, 0, 0};
+constexpr char SERVER_IP[] = "0.0.0.0";
+constexpr int SERVER_PORT = 3000;

@@ -29,6 +29,7 @@
  */
 
 #include <WiFi.h>
+#include "weather.h"
 
 // Please enter your configurations in the settings.h file:
 //  * WiFi name (SSID)
@@ -39,6 +40,7 @@
 
 // Setup global variables.
 WiFiClient client;
+weather::Data weather_data;
 
 // Use the Portenta RGB led to signal an error.
 void signal_error()
@@ -127,6 +129,16 @@ void setup()
       signal_error();
     }
   }
+  
+  if(client.connect(SERVER_IP, SERVER_PORT)) {
+    client.println("GET /api/settings HTTP/1.1");
+    client.println("Host: " + String(SERVER_IP) + "/api/settings");
+    client.println("Connection: close");
+    client.println();
+  }
+  else {
+    Serial.println("Unable to connect to server");
+  }
 }
 
 void loop() 
@@ -135,7 +147,13 @@ void loop()
   {
     signal_oke();
 
-    
+
+    while (client.available()) {
+      char c = client.read();  
+      Serial.write(c);  
+    }
+
+    weather_data.set_temperature(21.0F);
   }
   else 
   {
