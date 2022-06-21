@@ -30,6 +30,8 @@
 
 #include <WiFi.h>
 #include "weather.h"
+#include "src/ReadBufferFixedSize.h"
+#include "src/Errors.h"
 
 // Please enter your configurations in the settings.h file:
 //  * WiFi name (SSID)
@@ -41,6 +43,11 @@
 // Setup global variables.
 WiFiClient client;
 weather::Data weather_data;
+weather::Settings weather_settings;
+
+constexpr int BUFFER_SIZE = 256;
+EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> read_buffer;
+String string;
 
 // Use the Portenta RGB led to signal an error.
 void signal_error()
@@ -117,6 +124,8 @@ void setup()
     // Signal an error
     signal_error();
   }
+  Serial.println();
+  Serial.println();
 
   connect_to_wifi();
   
@@ -131,6 +140,7 @@ void setup()
   }
   
   if(client.connect(SERVER_IP, SERVER_PORT)) {
+    Serial.println("Request settings from thes server.");
     client.println("GET /api/settings HTTP/1.1");
     client.println("Host: " + String(SERVER_IP) + "/api/settings");
     client.println("Connection: close");
@@ -146,11 +156,34 @@ void loop()
   if(WL_CONNECTED == WiFi.status())
   {
     signal_oke();
+    
+    if(client.available()) {
+      string = client.readStringUntil('\n'); // HTTP/1.1 200 OK      
+      if("HTTP/1.1 200 OK\r" == string) {
+        string = client.readStringUntil('\n'); // Content-Type: application/x-protobuf
+        string = client.readStringUntil('\n'); // Date
+        string = client.readStringUntil('\n'); // Connection: close
+        string = client.readStringUntil('\n'); // Transfer-Encoding: chunked     
+        string = client.readStringUntil('\n'); // Empty string
+        
+        string = client.readStringUntil('\n'); // Number of data bytes as a string.
+        const int n_bytes_data = string.toInt();
+        const int n_bytes_received = client.readBytes(read_buffer.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
 
-
-    while (client.available()) {
-      char c = client.read();  
-      Serial.write(c);  
+        
+        if(n_bytes_received >= n_bytes_data)
+        {
+          const auto result = weather_settings.deserialize(read_buffer);
+          if(EmbeddedProto::Error::NO_ERRORS == result) 
+          {
+            Serial.println("Settings received.");
+          }
+          else 
+          {
+            Serial.println("Failed to deserialize settings.");
+          }
+        }
+      }
     }
 
     weather_data.set_temperature(21.0F);
