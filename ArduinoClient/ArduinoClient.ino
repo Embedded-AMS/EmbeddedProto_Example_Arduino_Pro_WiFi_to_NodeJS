@@ -29,8 +29,11 @@
  */
 
 #include <WiFi.h>
+#include <time.h>
+
 #include "weather.h"
 #include "src/ReadBufferFixedSize.h"
+#include "src/WriteBufferFixedSize.h"
 #include "src/Errors.h"
 
 // Please enter your configurations in the settings.h file:
@@ -46,8 +49,11 @@ weather::Data weather_data;
 weather::Settings weather_settings;
 
 constexpr int BUFFER_SIZE = 256;
+EmbeddedProto::WriteBufferFixedSize<BUFFER_SIZE> write_buffer;
 EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> read_buffer;
 String string;
+
+unsigned long update_time = 0;
 
 // Use the Portenta RGB led to signal an error.
 void signal_error()
@@ -96,8 +102,8 @@ void connect_to_wifi()
   {
     signal_wifi_disconnect();
         
-    // wait 3 seconds for connection:
-    delay(3000);
+    // wait 1 seconds for connection:
+    delay(1000);
     
     status = WiFi.begin(SECRET_SSID, SECRET_PASS);
   }
@@ -138,9 +144,14 @@ void setup()
       signal_error();
     }
   }
-  
+
+  // Set the default value in the settings object.
+  constexpr int DEFAULT_PERIOD_SEC = 5;
+  weather_settings.set_update_period_sec(DEFAULT_PERIOD_SEC);
+
+  // Request the settings from the server.
   if(client.connect(SERVER_IP, SERVER_PORT)) {
-    Serial.println("Request settings from thes server.");
+    Serial.println("Request settings from the server.");
     client.println("GET /api/settings HTTP/1.1");
     client.println("Host: " + String(SERVER_IP) + "/api/settings");
     client.println("Connection: close");
@@ -151,6 +162,39 @@ void setup()
   }
 }
 
+void receive_settings()
+{
+  string = client.readStringUntil('\n'); // HTTP/1.1 200 OK      
+  if("HTTP/1.1 200 OK\r" == string) {
+    string = client.readStringUntil('\n'); // Content-Type: application/x-protobuf
+    string = client.readStringUntil('\n'); // Date
+    string = client.readStringUntil('\n'); // Connection: close
+    string = client.readStringUntil('\n'); // Transfer-Encoding: chunked     
+    string = client.readStringUntil('\n'); // Empty string
+    
+    string = client.readStringUntil('\n'); // Number of data bytes as a string.
+    const int n_bytes_data = string.toInt();
+    const int n_bytes_received = client.readBytes(read_buffer.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
+    read_buffer.set_bytes_written(n_bytes_received);
+    
+    if(n_bytes_received >= n_bytes_data)
+    {
+      const auto result = weather_settings.deserialize(read_buffer);
+      if(EmbeddedProto::Error::NO_ERRORS == result) 
+      {
+        Serial.println("Settings received: update_period_sec=" + String(weather_settings.get_update_period_sec()));
+        
+      }
+      else 
+      {
+        Serial.println("Failed to deserialize settings.");
+      }
+    }
+
+    read_buffer.clear();
+  }
+}
+
 void loop() 
 {
   if(WL_CONNECTED == WiFi.status())
@@ -158,35 +202,53 @@ void loop()
     signal_oke();
     
     if(client.available()) {
-      string = client.readStringUntil('\n'); // HTTP/1.1 200 OK      
-      if("HTTP/1.1 200 OK\r" == string) {
-        string = client.readStringUntil('\n'); // Content-Type: application/x-protobuf
-        string = client.readStringUntil('\n'); // Date
-        string = client.readStringUntil('\n'); // Connection: close
-        string = client.readStringUntil('\n'); // Transfer-Encoding: chunked     
-        string = client.readStringUntil('\n'); // Empty string
-        
-        string = client.readStringUntil('\n'); // Number of data bytes as a string.
-        const int n_bytes_data = string.toInt();
-        const int n_bytes_received = client.readBytes(read_buffer.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
-
-        
-        if(n_bytes_received >= n_bytes_data)
-        {
-          const auto result = weather_settings.deserialize(read_buffer);
-          if(EmbeddedProto::Error::NO_ERRORS == result) 
-          {
-            Serial.println("Settings received.");
-          }
-          else 
-          {
-            Serial.println("Failed to deserialize settings.");
-          }
-        }
-      }
+      receive_settings();
     }
 
-    weather_data.set_temperature(21.0F);
+    if(millis() >= update_time) 
+    {      
+      // Fake reading data
+      weather_data.set_temperature(21.0F);
+
+      const auto result = weather_data.serialize(write_buffer);
+      if(EmbeddedProto::Error::NO_ERRORS == result)
+      {
+        if(client.connect(SERVER_IP, SERVER_PORT)) {
+          Serial.println("Sending N bytes to the server: w" + String(write_buffer.get_size()));
+          for(int i = 0; i < write_buffer.get_size(); ++i)
+          {
+            const byte b = *(write_buffer.get_data() + i);
+            if(16 > b) { Serial.print("0"); }
+            Serial.print(b, HEX);
+            Serial.print(" ");
+          }
+          Serial.println();
+          
+          client.println("POST /api/data HTTP/1.1");
+          client.println("Host: " + String(SERVER_IP) + "/api/data");
+          client.println("Content-Type: application/octet-stream");
+          client.println("Content-Length: " + String(write_buffer.get_size()));
+          client.write(write_buffer.get_data(), write_buffer.get_size());
+          client.println();
+          client.println('0');
+          client.println();
+          
+          delay(500);
+
+          while(-1 != client.read()) {
+            
+          }
+        }
+        else
+        {
+          Serial.println("Failed to connect to server.");
+        }
+      }
+      write_buffer.clear();
+      
+      // Reset the timer for the next update.
+      update_time = millis() + (1000 * weather_settings.get_update_period_sec());
+    }
   }
   else 
   {
