@@ -37,6 +37,7 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
       switch(req.url) {
         case "/api/settings":
           if('POST' == req.method) {
+            console.log("/api/settings POST")
             // TODO post
           }
           else {
@@ -52,7 +53,6 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
         case "/api/data":
           if('POST' == req.method) {
             console.log("/api/data POST");
-            
             // An empty buffer to store the data received.
             var receive_buffer = Buffer.alloc(0);
 
@@ -62,33 +62,33 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
             })
             req.on('end', function() {
               console.log('Body: ')
-              data_str = ''
+              let data_str = ''
               for(let pair of receive_buffer.entries()) {
                 data_str += pair[1].toString() + ", ";
               }
-              console.log(data_str)
+              console.log(data_str);
 
               let message = DataMessage.decode(receive_buffer);
-              console.log('Message: ')
-              console.log(message)
-              weather_data_objects.push(message);
+              console.log('Message: ');
+              console.log(message);
 
               // This is normally where you would add the data in database.
               // In this demo we use a simple array.
               weather_data_objects.push(message);
 
-              res.writeHead(200)
-              res.end()
+              res.writeHead(200);
+              res.end();
             })
           }
           else {
-            console.log("/api/data GET");       
+            console.log("/api/data GET");
+            // TODO   
           }
-          break
+          break;
         default:
           res.writeHead(404);
           res.end();
-          break
+          break;
       }
     }
     else {
@@ -102,7 +102,6 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
           .catch(err => {
               res.writeHead(500);
               res.end(err);
-              return;
           });
     }
   });
