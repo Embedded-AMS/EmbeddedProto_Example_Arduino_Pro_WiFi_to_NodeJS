@@ -60,10 +60,11 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
             })
             req.on('end', function() {
               console.log('Body: ')
+              data_str = ''
               for(let pair of receive_buffer.entries()) {
-                console.log( "\t" + pair[1]);
+                data_str += pair[1].toString() + ", ";
               }
-              console.log(' ')
+              console.log(data_str)
 
               let message = DataMessage.decode(receive_buffer);
               console.log('Message: ')
