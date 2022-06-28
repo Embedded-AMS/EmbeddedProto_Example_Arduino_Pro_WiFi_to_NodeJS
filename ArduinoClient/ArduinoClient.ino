@@ -31,7 +31,10 @@
 #include <WiFi.h>
 #include <time.h>
 
+// Load the header file with the generated *.proto code.
 #include "weather.h"
+
+// Load some files required from the Embedded Proto library.
 #include "src/ReadBufferFixedSize.h"
 #include "src/WriteBufferFixedSize.h"
 #include "src/Errors.h"
@@ -245,10 +248,25 @@ bool request_settings_from_server()
 void get_sensor_data()
 {
   const float time_sec = millis() / 1000.0F;
+  static int counter = 0;
+
+  ++counter;
   
   // Acttualy fake reading data
   const float temperature = 21.0F + 4.5 * cos(6.28F * time_sec / 120.0F); 
   weather_data.set_temperature(temperature);
+
+  const float humidity = 40.0F + 40.0F * sin(6.28F * time_sec / 160.0F);
+  weather_data.set_humidity(humidity);
+
+  const float air_pressure = 1024 + int(10*(counter % 40));
+  weather_data.set_air_pressure(air_pressure);
+
+  const float wind_speed = 16.0F + (3.0 * cos(6.28F * time_sec / 220.0F)) + random(-1.0, 1.0);
+  weather_data.set_wind_speed(wind_speed);
+
+  const float wind_direction = 360.0F * (0.5 + (cos(6.28F * time_sec / 1000.0F) + random(-0.1, 0.1)));
+  weather_data.set_wind_direction(wind_direction);
 }
 
 // Send weather data to the server.
@@ -287,7 +305,6 @@ bool send_weather_data()
       delay(500);
 
       Serial.println();
-      Serial.println("Response:");
       while(client.available()) 
       {
           string = client.readStringUntil('\n');
