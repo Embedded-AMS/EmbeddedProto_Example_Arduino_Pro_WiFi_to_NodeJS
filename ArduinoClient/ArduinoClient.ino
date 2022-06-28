@@ -116,21 +116,6 @@ void connect_to_wifi()
   Serial.println("You're connected to the network");
 }
 
-// Request the settings from the server.
-void get_settings_from_server()
-{
-  Serial.println("Request settings from the server.");
-  if(client.connect(SERVER_IP, SERVER_PORT)) {
-    client.println("GET /api/settings HTTP/1.1");
-    client.println("Host: " + String(SERVER_IP) + "/api/settings");
-    client.println("Connection: close");
-    client.println();
-  }
-  else {
-    Serial.println("Unable to connect to server");
-  }
-}
-
 
 void setup()
 {
@@ -171,68 +156,162 @@ void setup()
   weather_settings.set_update_period_sec(DEFAULT_PERIOD_SEC);
 
   // Request the settings from the server.
-  get_settings_from_server()
+  request_settings_from_server();
 }
 
-void receive_settings()
+// Request the settings from the server.
+bool request_settings_from_server()
 {
-  Serial.println("receive_settings");
-  
-  string = client.readStringUntil('\n'); 
-  Serial.println(string); // HTTP/1.1 200 OK      
-  if(string.startsWith("HTTP/1.1 200 OK"))
+  bool result = false;
+  Serial.println("Request settings from the server.");
+  if(client.connect(SERVER_IP, SERVER_PORT)) 
   {
+    client.println("GET /api/settings HTTP/1.1");
+    client.println("Host: " + String(SERVER_IP) + "/api/settings");
+    client.println("Connection: close");
+    client.println();
 
-    while(client.available())
-    {
-      string = client.readStringUntil('\n'); 
-      Serial.println(string);
-      // Read untill the first empty line is found.
-      if(string.startsWith("\r"))
-      {
-        // After the empty line the data lenght follows.
-        string = client.readStringUntil('\n'); 
-        const int n_bytes_data = string.toInt();
-        Serial.println("n_bytes_data: " + String(n_bytes_data));
-
-        const int n_bytes_received = client.readBytes(read_buffer.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
-        Serial.println("n_bytes_received: " + String(n_bytes_received));
-        for(int i = 0; i < n_bytes_received; ++i)
-        {
-          Serial.print(*(read_buffer.get_data_array() + i), HEX);
-          Serial.print(" "); 
-        }
-        Serial.println(""); 
-
-        for(int i = 0; i < n_bytes_received; ++i)
-        {
-          Serial.print(*(read_buffer.get_data_array() + i), BIN);
-          Serial.print(" "); 
-        }
-        Serial.println(""); 
-        
-        read_buffer.set_bytes_written(n_bytes_received);
-
-        if(n_bytes_received >= n_bytes_data)
-        {
-          const auto result = weather_settings.deserialize(read_buffer);
-          if(EmbeddedProto::Error::NO_ERRORS == result) 
-          {
-            Serial.println("Settings received: update_period_sec=" + String(weather_settings.get_update_period_sec()));
-            
-          }
-          else 
-          {
-            Serial.println("Failed to deserialize settings.");
-          }
-        }    
-        read_buffer.clear();
-        
-      }
+    // Wait for the response
+    delay(500);
       
+    string = client.readStringUntil('\n'); 
+    Serial.println(string); // HTTP/1.1 200 OK      
+    if(string.startsWith("HTTP/1.1 200 OK"))
+    {
+      // Read untill an empty line
+      do 
+      {
+        string = client.readStringUntil('\n'); 
+        Serial.println(string);
+      } while(!string.startsWith("\r"));
+
+      // After the empty line the data lenght follows.
+      string = client.readStringUntil('\n'); 
+      const int n_bytes_data = string.toInt();
+      Serial.println("n_bytes_data: " + String(n_bytes_data));
+
+      // Read the data bytes
+      const int n_bytes_received = client.readBytes(read_buffer.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
+
+      // Print out any more data from the server.
+      while(client.available())
+      {
+        string = client.readStringUntil('\n'); 
+        Serial.println(string);
+      }
+
+      // Print out the data human redable.
+      Serial.println("n_bytes_received: " + String(n_bytes_received));
+      for(int i = 0; i < n_bytes_received; ++i)
+      {
+        Serial.print(*(read_buffer.get_data_array() + i), HEX);
+        Serial.print(" "); 
+      }
+      Serial.println(""); 
+
+      // Set the number of bytes received.
+      read_buffer.set_bytes_written(n_bytes_received);
+
+      // Deserialize the settings from the read buffer.
+      const auto desrialize_result = weather_settings.deserialize(read_buffer);
+      if(EmbeddedProto::Error::NO_ERRORS == desrialize_result) 
+      {
+        result = true;
+        Serial.println("Settings received: update_period_sec=" + String(weather_settings.get_update_period_sec()));
+      }
+      else 
+      {
+        Serial.println("Failed to deserialize settings.");
+      }
+
+      // Clear the read buffer.
+      read_buffer.clear(); 
+    }
+    else 
+    {
+      Serial.println("Requesting settings failed.");
+    }
+
+    client.stop();
+  }
+  else 
+  {
+    Serial.println("Unable to connect to server");
+  }
+  return result;
+}
+
+// Read weather data from the sensors.
+void get_sensor_data()
+{
+  const float time_sec = millis() / 1000.0F;
+  
+  // Acttualy fake reading data
+  const float temperature = 21.0F + 4.5 * cos(6.28F * time_sec / 120.0F); 
+  weather_data.set_temperature(temperature);
+}
+
+// Send weather data to the server.
+bool send_weather_data()
+{
+  bool result = false;
+  
+  // Serialize the weather data.
+  const auto serialize_result = weather_data.serialize(write_buffer);
+
+  // If all went well start connecting to the server.
+  if(EmbeddedProto::Error::NO_ERRORS == serialize_result)
+  {
+    if(client.connect(SERVER_IP, SERVER_PORT)) {
+      Serial.println("Sending N bytes to the server: " + String(write_buffer.get_size()));
+      for(int i = 0; i < write_buffer.get_size(); ++i)
+      {
+        const byte b = *(write_buffer.get_data() + i);
+        Serial.print(b);
+        Serial.print(" ");
+      }
+      Serial.println();
+      
+      client.println("POST /api/data HTTP/1.1");
+      client.println("Host: " + String(SERVER_IP) + "/api/data");
+      client.println("Content-Type: application/x-protobuf");
+      client.println("Connection: close");
+      client.println("Transfer-Encoding: chunked");
+      client.println("");
+      client.println(String(write_buffer.get_size()));
+      client.write(write_buffer.get_data(), write_buffer.get_size());
+      client.println();
+      client.println('0');
+      client.println();
+      
+      delay(500);
+
+      Serial.println();
+      Serial.println("Response:");
+      while(client.available()) 
+      {
+          string = client.readStringUntil('\n');
+          Serial.println(string);
+          if(string.startsWith(""))
+          {
+            result = true;
+          }
+      }
+
+      client.stop();
+    }
+    else
+    {
+      Serial.println("Failed to connect to server.");
     }
   }
+
+  // Clear the write buffer after using it.
+  write_buffer.clear();
+
+  return result;
 }
+
 
 void loop() 
 {
@@ -240,60 +319,11 @@ void loop()
   {
     signal_oke();
     
-    if(client.available()) {
-      receive_settings();
-    }
-
     if(millis() >= update_time) 
     {      
-      // Fake reading data
-      ++iteration_counter;
-      const float temperature = 21.0F + 4.5 * sin(6.28F * iteration_counter / 50.0F); 
-      weather_data.set_temperature(temperature);
+      get_sensor_data();
 
-      // Serialize the weather data.
-      const auto result = weather_data.serialize(write_buffer);
-
-      // If all went well start connecting to the server.
-      if(EmbeddedProto::Error::NO_ERRORS == result)
-      {
-        if(client.connect(SERVER_IP, SERVER_PORT)) {
-          Serial.println("Sending N bytes to the server: " + String(write_buffer.get_size()));
-          for(int i = 0; i < write_buffer.get_size(); ++i)
-          {
-            const byte b = *(write_buffer.get_data() + i);
-            Serial.print(b);
-            Serial.print(" ");
-          }
-          Serial.println();
-          
-          client.println("POST /api/data HTTP/1.1");
-          client.println("Host: " + String(SERVER_IP) + "/api/data");
-          client.println("Content-Type: application/x-protobuf");
-          client.println("Connection: close");
-          client.println("Transfer-Encoding: chunked");
-          client.println("");
-          client.println(String(write_buffer.get_size()));
-          client.write(write_buffer.get_data(), write_buffer.get_size());
-          client.println();
-          client.println('0');
-          client.println();
-          
-          delay(500);
-
-          Serial.println();
-          Serial.println("Response:");
-          while(client.available()) {
-              string = client.readStringUntil('\n'); 
-              Serial.println(string);
-          }
-        }
-        else
-        {
-          Serial.println("Failed to connect to server.");
-        }
-      }
-      write_buffer.clear();
+      send_weather_data();
       
       // Reset the timer for the next update.
       update_time = millis() + (1000 * weather_settings.get_update_period_sec());
