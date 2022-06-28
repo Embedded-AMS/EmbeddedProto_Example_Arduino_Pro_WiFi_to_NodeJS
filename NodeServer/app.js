@@ -6,8 +6,6 @@ var protobuf = require("protobufjs");
 const hostname = '127.0.0.1';
 const port = 3000;
 
-
-
 protobuf.load("../Proto/weather.proto", function(err, root) {
   if (err)
       throw err;
@@ -27,7 +25,7 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
   }
   else {
     weather_settings = SettingsMessage.create(default_settings);
-    weather_settings.update_period_sec = 5;
+    weather_settings.update_period_sec = 10;
     console.log(`weather_settings = ${JSON.stringify(weather_settings)}`)
   }
 
@@ -44,34 +42,35 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
             // Get request, return the current settings
             res.setHeader("Content-Type", "application/x-protobuf");
             res.writeHead(200);
-            let buffer = SettingsMessage.encode(weather_settings).finish();
-            console.log(`buffer = ${Array.prototype.toString.call(buffer)}`);
-            res.end(buffer);
+            let settings_buffer = SettingsMessage.encode(weather_settings).finish();
+            console.log(`settings_buffer = ${Array.prototype.toString.call(settings_buffer)}`);
+            res.end(settings_buffer);
           }
           break
         case "/api/data":
           if('POST' == req.method) {
             console.log("/api/data POST");
-            var buffer = Buffer.alloc(0);
+            
+            // An empty buffer to store the data received.
+            var receive_buffer = Buffer.alloc(0);
+
             req.on('data', function(chunk) {
-              let temp = buffer;
-              buffer = new Buffer.concat([temp, chunk]);
+              let temp = receive_buffer;
+              receive_buffer = new Buffer.concat([temp, chunk]);
             })
             req.on('end', function() {
               console.log('Body: ')
-              for(let pair of buffer.entries()) {
+              for(let pair of receive_buffer.entries()) {
                 console.log( "\t" + pair[1]);
               }
               console.log(' ')
 
-              buffer[buffer.length - 2] = 0; // \r
-              buffer[buffer.length - 1] = 0; // \n
-              var message = DataMessage.decode(msg_data);
+              let message = DataMessage.decode(receive_buffer);
               console.log('Message: ')
               console.log(message)
 
-              res.writeHead(200, {'Content-Type': 'text/html'})
-              res.end('post received')
+              res.writeHead(200)
+              res.end()
             })
           }
           else {

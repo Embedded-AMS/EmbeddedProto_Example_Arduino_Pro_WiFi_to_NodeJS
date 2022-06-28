@@ -45,15 +45,20 @@
 
 // Setup global variables.
 WiFiClient client;
+String string;
+int iteration_counter = 0;
+unsigned long update_time = 0;
+
+// Protobuf data message objects.
 weather::Data weather_data;
 weather::Settings weather_settings;
 
+// Buffers used for serializing and deserializing messages.
 constexpr int BUFFER_SIZE = 256;
 EmbeddedProto::WriteBufferFixedSize<BUFFER_SIZE> write_buffer;
 EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> read_buffer;
-String string;
 
-unsigned long update_time = 0;
+
 
 // Use the Portenta RGB led to signal an error.
 void signal_error()
@@ -111,6 +116,22 @@ void connect_to_wifi()
   Serial.println("You're connected to the network");
 }
 
+// Request the settings from the server.
+void get_settings_from_server()
+{
+  Serial.println("Request settings from the server.");
+  if(client.connect(SERVER_IP, SERVER_PORT)) {
+    client.println("GET /api/settings HTTP/1.1");
+    client.println("Host: " + String(SERVER_IP) + "/api/settings");
+    client.println("Connection: close");
+    client.println();
+  }
+  else {
+    Serial.println("Unable to connect to server");
+  }
+}
+
+
 void setup()
 {
   // Initialize digital pin LED_BUILTIN as an output.
@@ -150,48 +171,66 @@ void setup()
   weather_settings.set_update_period_sec(DEFAULT_PERIOD_SEC);
 
   // Request the settings from the server.
-  if(client.connect(SERVER_IP, SERVER_PORT)) {
-    Serial.println("Request settings from the server.");
-    client.println("GET /api/settings HTTP/1.1");
-    client.println("Host: " + String(SERVER_IP) + "/api/settings");
-    client.println("Connection: close");
-    client.println();
-  }
-  else {
-    Serial.println("Unable to connect to server");
-  }
+  get_settings_from_server()
 }
 
 void receive_settings()
 {
-  string = client.readStringUntil('\n'); // HTTP/1.1 200 OK      
-  if("HTTP/1.1 200 OK\r" == string) {
-    string = client.readStringUntil('\n'); // Content-Type: application/x-protobuf
-    string = client.readStringUntil('\n'); // Date
-    string = client.readStringUntil('\n'); // Connection: close
-    string = client.readStringUntil('\n'); // Transfer-Encoding: chunked     
-    string = client.readStringUntil('\n'); // Empty string
-    
-    string = client.readStringUntil('\n'); // Number of data bytes as a string.
-    const int n_bytes_data = string.toInt();
-    const int n_bytes_received = client.readBytes(read_buffer.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
-    read_buffer.set_bytes_written(n_bytes_received);
-    
-    if(n_bytes_received >= n_bytes_data)
+  Serial.println("receive_settings");
+  
+  string = client.readStringUntil('\n'); 
+  Serial.println(string); // HTTP/1.1 200 OK      
+  if(string.startsWith("HTTP/1.1 200 OK"))
+  {
+
+    while(client.available())
     {
-      const auto result = weather_settings.deserialize(read_buffer);
-      if(EmbeddedProto::Error::NO_ERRORS == result) 
+      string = client.readStringUntil('\n'); 
+      Serial.println(string);
+      // Read untill the first empty line is found.
+      if(string.startsWith("\r"))
       {
-        Serial.println("Settings received: update_period_sec=" + String(weather_settings.get_update_period_sec()));
+        // After the empty line the data lenght follows.
+        string = client.readStringUntil('\n'); 
+        const int n_bytes_data = string.toInt();
+        Serial.println("n_bytes_data: " + String(n_bytes_data));
+
+        const int n_bytes_received = client.readBytes(read_buffer.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
+        Serial.println("n_bytes_received: " + String(n_bytes_received));
+        for(int i = 0; i < n_bytes_received; ++i)
+        {
+          Serial.print(*(read_buffer.get_data_array() + i), HEX);
+          Serial.print(" "); 
+        }
+        Serial.println(""); 
+
+        for(int i = 0; i < n_bytes_received; ++i)
+        {
+          Serial.print(*(read_buffer.get_data_array() + i), BIN);
+          Serial.print(" "); 
+        }
+        Serial.println(""); 
+        
+        read_buffer.set_bytes_written(n_bytes_received);
+
+        if(n_bytes_received >= n_bytes_data)
+        {
+          const auto result = weather_settings.deserialize(read_buffer);
+          if(EmbeddedProto::Error::NO_ERRORS == result) 
+          {
+            Serial.println("Settings received: update_period_sec=" + String(weather_settings.get_update_period_sec()));
+            
+          }
+          else 
+          {
+            Serial.println("Failed to deserialize settings.");
+          }
+        }    
+        read_buffer.clear();
         
       }
-      else 
-      {
-        Serial.println("Failed to deserialize settings.");
-      }
+      
     }
-
-    read_buffer.clear();
   }
 }
 
@@ -208,26 +247,33 @@ void loop()
     if(millis() >= update_time) 
     {      
       // Fake reading data
-      weather_data.set_temperature(21.0F);
+      ++iteration_counter;
+      const float temperature = 21.0F + 4.5 * sin(6.28F * iteration_counter / 50.0F); 
+      weather_data.set_temperature(temperature);
 
+      // Serialize the weather data.
       const auto result = weather_data.serialize(write_buffer);
+
+      // If all went well start connecting to the server.
       if(EmbeddedProto::Error::NO_ERRORS == result)
       {
         if(client.connect(SERVER_IP, SERVER_PORT)) {
-          Serial.println("Sending N bytes to the server: w" + String(write_buffer.get_size()));
+          Serial.println("Sending N bytes to the server: " + String(write_buffer.get_size()));
           for(int i = 0; i < write_buffer.get_size(); ++i)
           {
             const byte b = *(write_buffer.get_data() + i);
-            if(16 > b) { Serial.print("0"); }
-            Serial.print(b, HEX);
+            Serial.print(b);
             Serial.print(" ");
           }
           Serial.println();
           
           client.println("POST /api/data HTTP/1.1");
           client.println("Host: " + String(SERVER_IP) + "/api/data");
-          client.println("Content-Type: application/octet-stream");
-          client.println("Content-Length: " + String(write_buffer.get_size()));
+          client.println("Content-Type: application/x-protobuf");
+          client.println("Connection: close");
+          client.println("Transfer-Encoding: chunked");
+          client.println("");
+          client.println(String(write_buffer.get_size()));
           client.write(write_buffer.get_data(), write_buffer.get_size());
           client.println();
           client.println('0');
@@ -235,8 +281,11 @@ void loop()
           
           delay(500);
 
-          while(-1 != client.read()) {
-            
+          Serial.println();
+          Serial.println("Response:");
+          while(client.available()) {
+              string = client.readStringUntil('\n'); 
+              Serial.println(string);
           }
         }
         else
