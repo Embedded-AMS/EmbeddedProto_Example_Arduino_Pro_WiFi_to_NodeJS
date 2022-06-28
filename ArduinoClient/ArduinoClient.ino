@@ -265,7 +265,7 @@ void get_sensor_data()
   const float wind_speed = 16.0F + (3.0 * cos(6.28F * time_sec / 220.0F)) + random(-1.0, 1.0);
   weather_data.set_wind_speed(wind_speed);
 
-  const float wind_direction = 360.0F * (0.5 + (cos(6.28F * time_sec / 1000.0F) + random(-0.1, 0.1)));
+  const float wind_direction = 360.0F * (0.5 + 0.5*(cos(6.28F * time_sec / 1000.0F) + random(-0.1, 0.1)));
   weather_data.set_wind_direction(wind_direction);
 }
 
