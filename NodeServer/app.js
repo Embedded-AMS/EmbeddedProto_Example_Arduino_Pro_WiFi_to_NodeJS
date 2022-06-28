@@ -20,7 +20,7 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
   var weather_settings;
 
   // Set the default settings
-  const default_settings = {updatePeriodSec: 10}
+  const default_settings = {updatePeriodSec: 2}
   const errMsg = SettingsMessage.verify(default_settings);
   if(errMsg) {
       throw Error(errMsg);
