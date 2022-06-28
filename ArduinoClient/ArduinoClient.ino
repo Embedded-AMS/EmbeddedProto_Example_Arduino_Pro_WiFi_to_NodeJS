@@ -35,9 +35,9 @@
 #include "weather.h"
 
 // Load some files required from the Embedded Proto library.
-#include "src/ReadBufferFixedSize.h"
-#include "src/WriteBufferFixedSize.h"
-#include "src/Errors.h"
+#include <ReadBufferFixedSize.h>
+#include <WriteBufferFixedSize.h>
+#include <Errors.h>
 
 // Please enter your configurations in the settings.h file:
 //  * WiFi name (SSID)
