@@ -6,6 +6,8 @@ var protobuf = require("protobufjs");
 const hostname = '127.0.0.1';
 const port = 3000;
 
+var weather_data_objects = [];
+
 protobuf.load("../Proto/weather.proto", function(err, root) {
   if (err)
       throw err;
@@ -69,6 +71,11 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
               let message = DataMessage.decode(receive_buffer);
               console.log('Message: ')
               console.log(message)
+              weather_data_objects.push(message);
+
+              // This is normally where you would add the data in database.
+              // In this demo we use a simple array.
+              weather_data_objects.push(message);
 
               res.writeHead(200)
               res.end()
