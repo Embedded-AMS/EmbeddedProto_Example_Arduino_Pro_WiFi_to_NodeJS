@@ -296,7 +296,7 @@ bool send_weather_data()
       client.println("Connection: close");
       client.println("Transfer-Encoding: chunked");
       client.println("");
-      client.println(String(write_buffer.get_size()));
+      client.println(write_buffer.get_size(), HEX);
       client.write(write_buffer.get_data(), write_buffer.get_size());
       client.println();
       client.println('0');
