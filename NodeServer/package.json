@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "browserify": "^17.0.0",
     "protobufjs": "^6.11.3"
+  },
+  "scripts": {
+    "generate": "./node_modules/.bin/pbjs -t static-module -w commonjs -o weather.js ../Proto/weather.proto",
+    "bundle": "./node_modules/.bin/browserify weather.js -o weather_bundle.js",
+    "build": "npm run generate && npm run bundle",
+    "server": "node app.js"
   }
 }
