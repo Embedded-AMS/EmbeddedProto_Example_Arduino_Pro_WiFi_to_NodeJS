@@ -1,13 +1,75 @@
 <!DOCTYPE html>
 
 <head>
-    <title>Weather Dashboard</title>
+  <title>Weather Dashboard</title>
+  <script src="weather_bundle.js"></script>
+  <script src="//unpkg.com/alpinejs" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body>
-    <div class="center">
-        <h1>Hello</h1>
-    </div>
-</body>
 
+  <div class="flex flex-col item-center h-screen mx-20">
+    <div class="flex-none">
+      <h1 class="text-2xl font-semibold py-4 px-2">
+        Weather with Embedded Proto
+      </h1>
+    </div>
+    
+    <div class="flex-grow">
+        <div>
+          <canvas height="90" id="myChart"></canvas>
+        </div>
+    </div>
+
+    <div class="h-48" x-data="{ logs: ['a', 'b', 'c', 'd', 'e', 'f', 'g'] }">
+      <div class="box border rounded flex flex-col shadow">
+        <div class="flex-none bg-slate-200 px-3 py-2 border-b">
+          <h3 class="text-sm font-medium">Log Window</h3>
+        </div>
+        <div class="flex-grow bg-slate-100 p-2 h-32">
+          <div class="bg-white rounded p-2 h-full overflow-y-scroll shadow">
+            <template x-for="log in logs">
+              <p x-text="log"></p>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>  
+  
+</body>
+<script>
+    const labels = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+    ];
+  
+    const data = {
+      labels: labels,
+      datasets: [{
+        label: 'My First dataset',
+        backgroundColor: 'rgb(255, 99, 132)',
+        borderColor: 'rgb(255, 99, 132)',
+        data: [0, 10, 5, 2, 20, 30, 45],
+      }]
+    };
+  
+    const config = {
+      type: 'line',
+      data: data,
+      options: {}
+    };
+  </script>
+  <script>
+    const myChart = new Chart(
+      document.getElementById('myChart'),
+      config
+    );
+  </script>
 </html>
