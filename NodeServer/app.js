@@ -82,7 +82,22 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
           }
           else {
             console.log("/api/data GET");
-            // TODO   
+
+            const dummy_data = {temperature: 21.0, humidity: 65}
+            const errMsg = DataMessage.verify(dummy_data);
+            if(errMsg) {
+                throw Error(errMsg);
+            }
+            else {
+              weather_data = DataMessage.create(dummy_data);
+              console.log(`weather_data = ${JSON.stringify(weather_data)}`)
+            }
+
+            res.setHeader("Content-Type", "application/x-protobuf");
+            res.writeHead(200);
+            let data_buffer = DataMessage.encode(weather_data).finish();
+            console.log(`data_buffer = ${Array.prototype.toString.call(data_buffer)}`);
+            res.end(data_buffer);
           }
           break;
         default:
