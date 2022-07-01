@@ -5,7 +5,7 @@
   },
   "scripts": {
     "generate": "./node_modules/.bin/pbjs -t static-module -w commonjs -o weather.js ../Proto/weather.proto",
-    "bundle": "./node_modules/.bin/browserify home.js -o home_bundle.js",
+    "bundle": "./node_modules/.bin/browserify weather.js --standalone weather -o weather_bundle.js",
     "build": "npm run generate && npm run bundle",
     "server": "npm run build && node app.js"
   }

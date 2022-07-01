@@ -21,7 +21,7 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
 
   // Set the default settings
   const default_settings = {updatePeriodSec: 2}
-  const errMsg = SettingsMessage.verify(default_settings);
+  let errMsg = SettingsMessage.verify(default_settings);
   if(errMsg) {
       throw Error(errMsg);
   }
@@ -30,6 +30,17 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
     weather_settings.update_period_sec = 10;
     console.log(`weather_settings = ${JSON.stringify(weather_settings)}`)
   }
+
+  const dummy_data = {temperature: 21.0, humidity: 65}
+  errMsg = DataMessage.verify(dummy_data);
+  if(errMsg) {
+      throw Error(errMsg);
+  }
+  else {
+    weather_data = DataMessage.create(dummy_data);
+    console.log(`weather_data = ${JSON.stringify(weather_data)}`)
+  }
+
 
   // Create a server object which listens to various end points.
   const server = http.createServer((req, res) => {
@@ -83,15 +94,7 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
           else {
             console.log("/api/data GET");
 
-            const dummy_data = {temperature: 21.0, humidity: 65}
-            const errMsg = DataMessage.verify(dummy_data);
-            if(errMsg) {
-                throw Error(errMsg);
-            }
-            else {
-              weather_data = DataMessage.create(dummy_data);
-              console.log(`weather_data = ${JSON.stringify(weather_data)}`)
-            }
+            weather_data.temperature = 15.0 + 20*Math.random();
 
             res.setHeader("Content-Type", "application/x-protobuf");
             res.writeHead(200);
@@ -118,7 +121,10 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
           filename = __dirname + "/favicon.svg";
           res.setHeader("Content-Type", "image/svg+xml");
           break;
-
+        case "/weather_bundle.js":
+            filename = __dirname + "/weather_bundle.js";
+            res.setHeader("Content-Type", "text/javascript");
+          break;
         case "/home_bundle.js":
           filename = __dirname + "/home_bundle.js";
           res.setHeader("Content-Type", "text/javascript");
