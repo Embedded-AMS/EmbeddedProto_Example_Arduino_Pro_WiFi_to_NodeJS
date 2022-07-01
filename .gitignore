@@ -49,3 +49,7 @@ Thumbs.db
 *.mov
 *.wmv
 
+NodeServer/home_bundle.js
+NodeServer/weather_bundle.js
+NodeServer/weather.js
+NodeServer/tmp.txt.js

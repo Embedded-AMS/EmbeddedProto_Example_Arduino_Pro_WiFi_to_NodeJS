@@ -107,10 +107,26 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
       }
     }
     else {
+
+      var filename;
+      switch(req.url) {
+        case "/":
+          filename = __dirname + "/home.html";
+          res.setHeader("Content-Type", "text/html");
+          break;
+        case "/favicon.ico":
+          filename = __dirname + "/favicon.svg";
+          res.setHeader("Content-Type", "image/svg+xml");
+          break;
+
+        case "/home_bundle.js":
+          filename = __dirname + "/home_bundle.js";
+          res.setHeader("Content-Type", "text/javascript");
+        break;
+      }
       // Serve the home page, the home page is stored in a html file.
-      fs.readFile(__dirname + "/home.html")
+      fs.readFile(filename)
           .then(contents => {
-              res.setHeader("Content-Type", "text/html");
               res.writeHead(200);
               res.end(contents);
           })
