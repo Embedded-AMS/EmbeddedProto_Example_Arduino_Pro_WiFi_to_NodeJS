@@ -31,7 +31,7 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
     console.log(`weather_settings = ${JSON.stringify(weather_settings)}`)
   }
 
-  const dummy_data = {temperature: 21.0, humidity: 65}
+  const dummy_data = {temperature: 0.0, humidity: 0.0, airPressure: 0, windSpeed: 0.0, windDirection: 0.0}
   errMsg = DataMessage.verify(dummy_data);
   if(errMsg) {
       throw Error(errMsg);
@@ -93,8 +93,12 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
           }
           else {
             console.log("/api/data GET");
-
-            weather_data.temperature = 15.0 + 20*Math.random();
+            
+            weather_data.temperature = 15.0 + 20*2*(Math.random()-0.5);
+            weather_data.humidity = 50.0 + 40*2*(Math.random()-0.5);
+            weather_data.airPressure = 1024 + Math.trunc(200*2*(Math.random()-0.5));
+            weather_data.windSpeed = 15.3 + 12*2*(Math.random()-0.5);
+            weather_data.windDirection = 180 + 180*2*(Math.random()-0.5);
 
             res.setHeader("Content-Type", "application/x-protobuf");
             res.writeHead(200);
