@@ -19,12 +19,12 @@
     </div>
 
     <!-- Charts -->
-    <div class="flex-grow p-4" x-init="$watch('$store.weather.data', data => console.log(data))">
+    <div class="flex-grow p-4" >
       <div class="flex flex-wrap">
-        <template x-for="cc in chartConstants" :key="cc.varName">
-          <div class="box border rounded shadow p-4 m-4 bg-slate-100">
+        <template x-for="cc in chartConstants" :key="cc.varName" x-init="$watch('$store.weather.lastData', lastData => console.log(Alpine.raw(lastData)))">
+          <div class="box border rounded shadow p-4 m-4 bg-slate-100" x-data="chartConfig(cc)">
             <div class="box border rounded shadow p-2 bg-white">
-              <canvas height="90" :id="cc.varName" x-data="chartConfig(cc)" x-init="allocate()"></canvas>
+              <canvas height="180" :id="cc.varName" x-init="allocate()" x-effect="update($store.weather.lastData)"></canvas>
             </div>
           </div>
         </template>
@@ -72,19 +72,21 @@
     
     Alpine.store('weather', {
       data: new Array(),
+      lastData: {},
 
       async get_data_from_server() {
         let server_url = window.location.href + "api/data";
         let response = await fetch(server_url);
-        let msg = weather.weather.Data.decode(new Uint8Array(await response.arrayBuffer()));
-        console.log(await msg);
-        this.data.push(await msg);
+        this.lastData = weather.weather.Data.decode(new Uint8Array(await response.arrayBuffer()));
+        //console.log("lastData: " + await this.lastData);
+        this.data.push(await this.lastData);
       }
 
     }),
 
     Alpine.data('chartConfig', (initChartConstants = {}) => {
       let chartObject;
+      var labelCounter = 0;
 
       return {
         chartConstants: initChartConstants,
@@ -96,29 +98,30 @@
           chartObject = new Chart(document.getElementById(this.chartConstants.varName), {
             type: 'line',
             data: {
-              labels: [
-                'January',
-                'February',
-                'March',
-                'April',
-                'May',
-                'June',
-              ],
               datasets: [{
                 label: this.chartConstants.title,
                 backgroundColor: 'rgb(255, 99, 132)',
                 borderColor: 'rgb(255, 99, 132)',
-                data: [0, 10, 5, 2, 20, 30, 45],
+                data: [],
               }]
             },
             options: {}
           });
         },
 
-        update() {
-          // Add data
-
-          chartObject.update();
+        update(dataMsg) {
+          // Only add data to the chart when we have received data:
+          if(0 != Object.keys(dataMsg).length) {
+            // Add data
+            chartObject.data.labels.push(labelCounter);
+            labelCounter += 1;
+            const varValue = Alpine.raw(dataMsg)[this.chartConstants.varName];
+            // console.log(varValue)
+            chartObject.data.datasets.forEach((dataset) => {
+              dataset.data.push(varValue);
+            });
+            chartObject.update();
+          }
         },
       }
     })
