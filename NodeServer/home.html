@@ -10,33 +10,28 @@
 
 <body>
   <div class="flex flex-col item-center h-screen mx-20">
+    <!-- Navbar -->
     <div class="flex-none">
       <h1 class="text-2xl font-semibold py-4 px-2">
         Weather with Embedded Proto
       </h1>
       <button class="bg-slate-200 p-2 rounded" x-data @click="$store.weather.get_data_from_server()">Get weather data</button>
     </div>
-    
-    <ul x-init="$watch('$store.weather.data', data => console.log(data))">
-      <template x-for="data in $store.weather.data" >
-          <li x-text="data.temperature"></li>
-      </template>
-    </ul>
 
-    <div class="flex-grow">
+    <!-- Charts -->
+    <div class="flex-grow p-4" x-init="$watch('$store.weather.data', data => console.log(data))">
       <div class="flex flex-wrap">
-        <div class="flex-none w-96">
-
-        </div>
-        <div class="flex-none w-96">
-
-        </div>
-        <div class="flex-none w-96">
-
-        </div>
+        <template x-for="cc in chartConstants" :key="cc.varName">
+          <div class="box border rounded shadow p-4 m-4 bg-slate-100">
+            <div class="box border rounded shadow p-2 bg-white">
+              <canvas height="90" :id="cc.varName" x-data="chartConfig(cc)" x-init="allocate()"></canvas>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
+    <!-- Log window -->
     <div class="h-48">
       <div class="box border rounded flex flex-col shadow">
         <div class="flex-none bg-slate-200 px-3 py-2 border-b">
@@ -51,34 +46,83 @@
         </div>
       </div>
     </div>
+
   </div>
   
 </body>
 
 <script defer>
+  // Various constants related to each variable.
+  const chartConstants = [{ varName: 'temperature', title: 'Temperature', }, 
+                          { varName: 'humidity', title: 'Humidity', },
+                          { varName: 'airPressure', title: 'Air Pressure', },
+                          { varName: 'windSpeed', title: "Wind Speed", },
+                          { varName: 'windDirection', title: "Wind Direction", },
+                        ]
 
-document.addEventListener('alpine:init', () => {
-  console.log("alpine:init")
-  Alpine.store('logging', {    
-    logs: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+  document.addEventListener('alpine:init', () => {
+    
+    Alpine.store('logging', {    
+      logs: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
 
-    add(log_msg) {
-      this.logs.push(log_msg);
-    }
-  }),
-  Alpine.store('weather', {
-    data: new Array(),
+      add(log_msg) {
+        this.logs.push(log_msg);
+      }
+    }),
+    
+    Alpine.store('weather', {
+      data: new Array(),
 
-    async get_data_from_server() {
-      let server_url = window.location.href + "api/data";
-      let response = await fetch(server_url);
-      let msg = weather.weather.Data.decode(new Uint8Array(await response.arrayBuffer()));
-      console.log(await msg);
-      this.data.push(await msg);
-    }
+      async get_data_from_server() {
+        let server_url = window.location.href + "api/data";
+        let response = await fetch(server_url);
+        let msg = weather.weather.Data.decode(new Uint8Array(await response.arrayBuffer()));
+        console.log(await msg);
+        this.data.push(await msg);
+      }
 
+    }),
+
+    Alpine.data('chartConfig', (initChartConstants = {}) => {
+      let chartObject;
+
+      return {
+        chartConstants: initChartConstants,
+
+        allocate() {
+          // In the init function the getElementById will return the wrong ID. This function is 
+          // called later when the correct ID is set.
+          console.log('allocate');
+          chartObject = new Chart(document.getElementById(this.chartConstants.varName), {
+            type: 'line',
+            data: {
+              labels: [
+                'January',
+                'February',
+                'March',
+                'April',
+                'May',
+                'June',
+              ],
+              datasets: [{
+                label: this.chartConstants.title,
+                backgroundColor: 'rgb(255, 99, 132)',
+                borderColor: 'rgb(255, 99, 132)',
+                data: [0, 10, 5, 2, 20, 30, 45],
+              }]
+            },
+            options: {}
+          });
+        },
+
+        update() {
+          // Add data
+
+          chartObject.update();
+        },
+      }
+    })
   })
-})
 </script>
 
 </html>
