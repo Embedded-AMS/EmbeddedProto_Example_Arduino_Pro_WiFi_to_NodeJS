@@ -6,8 +6,6 @@ var protobuf = require("protobufjs");
 const hostname = '127.0.0.1';
 const port = 3000;
 
-var weather_data_objects = [];
-
 protobuf.load("../Proto/weather.proto", function(err, root) {
   if (err)
       throw err;
@@ -15,9 +13,12 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
     console.log('Protobuf file loaded, setting up the server.')
 
   // Obtain the message types
-  var DataMessage = root.lookupType("weather.Data");
-  var SettingsMessage = root.lookupType("weather.Settings");
-  var weather_settings;
+  let DataMessage = root.lookupType("weather.Data");
+  let DataHistoryMessage = root.lookupType("weather.DataHistory");
+  let SettingsMessage = root.lookupType("weather.Settings");
+  let weather_data;
+  let data_history = DataHistoryMessage.create();
+  let weather_settings;
 
   // Set the default settings
   const default_settings = {updatePeriodSec: 2}
@@ -40,7 +41,6 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
     weather_data = DataMessage.create(dummy_data);
     console.log(`weather_data = ${JSON.stringify(weather_data)}`)
   }
-
 
   // Create a server object which listens to various end points.
   const server = http.createServer((req, res) => {
@@ -65,7 +65,7 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
           if('POST' == req.method) {
             console.log("/api/data POST");
             // An empty buffer to store the data received.
-            var receive_buffer = Buffer.alloc(0);
+            let receive_buffer = Buffer.alloc(0);
 
             req.on('data', function(chunk) {
               let temp = receive_buffer;
@@ -85,7 +85,9 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
 
               // This is normally where you would add the data in database.
               // In this demo we use a simple array.
-              weather_data_objects.push(message);
+              //weather_data_objects.push(message);
+              data_history.data.push(message);
+              
 
               res.writeHead(200);
               res.end();
@@ -93,18 +95,25 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
           }
           else {
             console.log("/api/data GET");
-            
+            res.setHeader("Content-Type", "application/x-protobuf");
+            res.writeHead(200);
+            /*
             weather_data.temperature = 15.0 + 20*2*(Math.random()-0.5);
             weather_data.humidity = 50.0 + 40*2*(Math.random()-0.5);
             weather_data.airPressure = 1024 + Math.trunc(200*2*(Math.random()-0.5));
             weather_data.windSpeed = 15.3 + 12*2*(Math.random()-0.5);
             weather_data.windDirection = 180 + 180*2*(Math.random()-0.5);
 
-            res.setHeader("Content-Type", "application/x-protobuf");
-            res.writeHead(200);
             let data_buffer = DataMessage.encode(weather_data).finish();
             console.log(`data_buffer = ${Array.prototype.toString.call(data_buffer)}`);
             res.end(data_buffer);
+            */
+            let data_buffer = DataHistoryMessage.encode(data_history).finish();
+            console.log(`data_buffer = ${Array.prototype.toString.call(data_buffer)}`);
+            res.end(data_buffer);
+
+            // Clear the data.
+            data_history.data = [];
           }
           break;
         default:

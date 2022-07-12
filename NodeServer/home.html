@@ -71,15 +71,13 @@
     }),
     
     Alpine.store('weather', {
-      data: new Array(),
       lastData: {},
 
       async get_data_from_server() {
         let server_url = window.location.href + "api/data";
         let response = await fetch(server_url);
-        this.lastData = weather.weather.Data.decode(new Uint8Array(await response.arrayBuffer()));
-        //console.log("lastData: " + await this.lastData);
-        this.data.push(await this.lastData);
+        this.lastData = weather.weather.DataHistory.decode(new Uint8Array(await response.arrayBuffer()));
+        console.log("lastData: " + await this.lastData);
       }
 
     }),
@@ -109,18 +107,27 @@
           });
         },
 
-        update(dataMsg) {
-          // Only add data to the chart when we have received data:
-          if(0 != Object.keys(dataMsg).length) {
-            // Add data
-            chartObject.data.labels.push(labelCounter);
-            labelCounter += 1;
-            const varValue = Alpine.raw(dataMsg)[this.chartConstants.varName];
-            // console.log(varValue)
-            chartObject.data.datasets.forEach((dataset) => {
-              dataset.data.push(varValue);
-            });
-            chartObject.update();
+        update(dataHistoryMsg) {
+          if((0 != Object.keys(dataHistoryMsg).length) && (0 < dataHistoryMsg.data.length))
+          {
+            // Only add data to the chart when we have received data:
+            console.log(Alpine.raw(dataHistoryMsg));
+
+            for (var i = 0; i < dataHistoryMsg.data.length; i++)
+            {
+              // Add data
+              chartObject.data.labels.push(labelCounter);
+              labelCounter += 1;
+              const varValue = Alpine.raw(dataHistoryMsg.data[i])[this.chartConstants.varName];
+              // console.log(varValue)
+              chartObject.data.datasets.forEach((dataset) => {
+                dataset.data.push(varValue);
+              });
+            }
+
+            if(0 != dataHistoryMsg.data.length) {
+              chartObject.update();
+            }
           }
         },
       }

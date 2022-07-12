@@ -40,6 +40,10 @@ message Data {
   float wind_direction  = 5;
 }
 
+message DataHistory {
+  repeated Data data = 1;
+}
+
 message Settings {
   int32 update_period_sec = 1; // The period between two updates given in seconds.
 }
