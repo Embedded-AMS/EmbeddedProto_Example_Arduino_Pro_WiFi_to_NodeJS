@@ -52,11 +52,11 @@ String string;
 int iteration_counter = 0;
 unsigned long update_time = 0;
 
-// Protobuf data message objects.
+// Embedded Proto data message objects.
 weather::Data weather_data;
 weather::Settings weather_settings;
 
-// Buffers used for serializing and deserializing messages.
+// Embedded Proto buffers used for serializing and deserializing messages.
 constexpr int BUFFER_SIZE = 256;
 EmbeddedProto::WriteBufferFixedSize<BUFFER_SIZE> write_buffer;
 EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> read_buffer;
@@ -244,7 +244,7 @@ bool request_settings_from_server()
   return result;
 }
 
-// Read weather data from the sensors.
+// Read weather data from the sensors. In this example we generate semi random data.
 void get_sensor_data()
 {
   const float time_sec = millis() / 1000.0F;
@@ -262,10 +262,10 @@ void get_sensor_data()
   const float air_pressure = 1024 + int(10*(counter % 40));
   weather_data.set_air_pressure(air_pressure);
 
-  const float wind_speed = 16.0F + (3.0 * cos(6.28F * time_sec / 220.0F)) + random(-1.0, 1.0);
+  const float wind_speed = (16.0F + (3.0 * cos(6.28F * time_sec / 220.0F))) * random(9000, 11000)/10000;
   weather_data.set_wind_speed(wind_speed);
 
-  const float wind_direction = 360.0F * (0.5 + 0.5*(cos(6.28F * time_sec / 1000.0F) + random(-0.1, 0.1)));
+  const float wind_direction = (360.0F * (0.5 + 0.5*cos(6.28F * time_sec / 1000.0F))) * random(9000, 11000)/10000;
   weather_data.set_wind_direction(wind_direction);
 }
 
@@ -330,6 +330,7 @@ bool send_weather_data()
 }
 
 
+// The main loop of the program.
 void loop() 
 {
   if(WL_CONNECTED == WiFi.status())
