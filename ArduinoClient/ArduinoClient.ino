@@ -134,13 +134,6 @@ void setup()
   
   // Initialize the serial port to output debug information.
   Serial.begin(9600);
-  while(!Serial)
-  {
-    // Signal an error
-    signal_error();
-  }
-  Serial.println();
-  Serial.println();
 
   connect_to_wifi();
   
