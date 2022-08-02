@@ -31,11 +31,12 @@
 #include <WiFi.h>
 #include <time.h>
 
+#include "GetConfig.h"
+
 // Load the header file with the generated *.proto code.
 #include "weather.h"
 
 // Load some files required from the Embedded Proto library.
-#include <ReadBufferFixedSize.h>
 #include <WriteBufferFixedSize.h>
 #include <Errors.h>
 
@@ -59,7 +60,6 @@ weather::Settings weather_settings;
 // Embedded Proto buffers used for serializing and deserializing messages.
 constexpr int BUFFER_SIZE = 256;
 EmbeddedProto::WriteBufferFixedSize<BUFFER_SIZE> write_buffer;
-EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> read_buffer;
 
 
 
@@ -152,90 +152,9 @@ void setup()
   weather_settings.set_update_period_sec(DEFAULT_PERIOD_SEC);
 
   // Request the settings from the server.
-  request_settings_from_server();
+  get_config::request_settings_from_server(client, weather_settings);
 }
 
-// Request the settings from the server.
-bool request_settings_from_server()
-{
-  bool result = false;
-  Serial.println("Request settings from the server.");
-  if(client.connect(SERVER_IP, SERVER_PORT)) 
-  {
-    client.println("GET /api/settings HTTP/1.1");
-    client.println("Host: " + String(SERVER_IP) + "/api/settings");
-    client.println("Connection: close");
-    client.println();
-
-    // Wait for the response
-    delay(500);
-      
-    string = client.readStringUntil('\n'); 
-    Serial.println(string); // HTTP/1.1 200 OK      
-    if(string.startsWith("HTTP/1.1 200 OK"))
-    {
-      // Read untill an empty line
-      do 
-      {
-        string = client.readStringUntil('\n'); 
-        Serial.println(string);
-      } while(!string.startsWith("\r"));
-
-      // After the empty line the data lenght follows.
-      string = client.readStringUntil('\n'); 
-      const int n_bytes_data = string.toInt();
-      Serial.println("n_bytes_data: " + String(n_bytes_data));
-
-      // Read the data bytes
-      const int n_bytes_received = client.readBytes(read_buffer.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
-
-      // Print out any more data from the server.
-      while(client.available())
-      {
-        string = client.readStringUntil('\n'); 
-        Serial.println(string);
-      }
-
-      // Print out the data human redable.
-      Serial.println("n_bytes_received: " + String(n_bytes_received));
-      for(int i = 0; i < n_bytes_received; ++i)
-      {
-        Serial.print(*(read_buffer.get_data_array() + i), HEX);
-        Serial.print(" "); 
-      }
-      Serial.println(""); 
-
-      // Set the number of bytes received.
-      read_buffer.set_bytes_written(n_bytes_received);
-
-      // Deserialize the settings from the read buffer.
-      const auto desrialize_result = weather_settings.deserialize(read_buffer);
-      if(EmbeddedProto::Error::NO_ERRORS == desrialize_result) 
-      {
-        result = true;
-        Serial.println("Settings received: update_period_sec=" + String(weather_settings.get_update_period_sec()));
-      }
-      else 
-      {
-        Serial.println("Failed to deserialize settings.");
-      }
-
-      // Clear the read buffer.
-      read_buffer.clear(); 
-    }
-    else 
-    {
-      Serial.println("Requesting settings failed.");
-    }
-
-    client.stop();
-  }
-  else 
-  {
-    Serial.println("Unable to connect to server");
-  }
-  return result;
-}
 
 // Read weather data from the sensors. In this example we generate semi random data.
 void get_sensor_data()
@@ -273,7 +192,8 @@ bool send_weather_data()
   // If all went well start connecting to the server.
   if(EmbeddedProto::Error::NO_ERRORS == serialize_result)
   {
-    if(client.connect(SERVER_IP, SERVER_PORT)) {
+    if(client.connect(SERVER_IP, SERVER_PORT)) 
+    {
       Serial.println("Sending N bytes to the server: " + String(write_buffer.get_size()));
       for(int i = 0; i < write_buffer.get_size(); ++i)
       {
@@ -313,6 +233,7 @@ bool send_weather_data()
     else
     {
       Serial.println("Failed to connect to server.");
+      client.stop();
     }
   }
 

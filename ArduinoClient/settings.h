@@ -28,6 +28,10 @@
  *    the Netherlands
  */
 
+#ifndef WEATHER_SETTINGS_H
+#define WEATHER_SETTINGS_H
+
+
 // Please enter your WiFi SSID and password in the following constants.
 constexpr char SECRET_SSID[] = "";
 constexpr char SECRET_PASS[] = "";
@@ -35,3 +39,6 @@ constexpr char SECRET_PASS[] = "";
 // Please enter your server IP and port number in the following constants.
 constexpr char SERVER_IP[] = "0.0.0.0";
 constexpr int SERVER_PORT = 3000;
+
+
+#endif // WEATHER_SETTINGS_H
