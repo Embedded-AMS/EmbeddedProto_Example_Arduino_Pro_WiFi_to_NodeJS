@@ -48,10 +48,9 @@
 namespace get_config 
 {
   constexpr int BUFFER_SIZE = 256;
-  EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> read_buffer;
-  
+    
   // Request the settings from the server.
-  bool request_settings_from_server(Client& client, weather::Settings& weather_settings)
+  bool get_data_buffer_from_server(Client& client, EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE>& read_buffer)
   {
     bool result = false;
     Serial.println("Request settings from the server.");
@@ -61,10 +60,7 @@ namespace get_config
       client.println("Host: " + String(SERVER_IP) + "/api/settings");
       client.println("Connection: close");
       client.println();
-  
-      // Wait for the response
-      //delay(1500);
-        
+             
       String string = client.readStringUntil('\n'); 
       Serial.println(string); // HTTP/1.1 200 OK      
       if(string.startsWith("HTTP/1.1 200 OK"))
@@ -102,36 +98,50 @@ namespace get_config
   
         // Set the number of bytes received.
         read_buffer.set_bytes_written(n_bytes_received);
-  
-        // Deserialize the settings from the read buffer.
-        const auto desrialize_result = weather_settings.deserialize(read_buffer);
-        if(EmbeddedProto::Error::NO_ERRORS == desrialize_result) 
-        {
-          result = true;
-          Serial.println("Settings received: update_period_sec=" + String(weather_settings.get_update_period_sec()));
-        }
-        else 
-        {
-          Serial.println("Failed to deserialize settings.");
-        }
-  
-        // Clear the read buffer.
-        read_buffer.clear(); 
+
+        result = true;
       }
       else 
       {
         Serial.println("Requesting settings failed.");
       }
   
-      client.stop();
     }
     else 
     {
       Serial.println("Unable to connect to server");
-      client.stop();
     }
+    
+    client.stop();
     return result;
   }
+
+  bool request_settings_from_server(Client& client, weather::Settings& weather_settings)
+  {
+    EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> read_buffer;
+  
+    bool result = get_data_buffer_from_server(client, read_buffer);
+    if(result) 
+    {
+      // Deserialize the settings from the read buffer.
+      const auto desrialize_result = weather_settings.deserialize(read_buffer);
+      if(EmbeddedProto::Error::NO_ERRORS == desrialize_result) 
+      {
+        Serial.println("Settings received: update_period_sec=" + String(weather_settings.get_update_period_sec()));
+      }
+      else 
+      {
+        result = false;
+        Serial.println("Failed to deserialize settings.");
+      }
+
+      // Clear the read buffer.
+      read_buffer.clear();
+    }
+    
+    return result;
+  }
+  
   
 } // End of namespace get_config
 
