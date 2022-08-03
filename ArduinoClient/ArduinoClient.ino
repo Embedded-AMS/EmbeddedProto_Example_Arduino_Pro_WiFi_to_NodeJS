@@ -31,7 +31,7 @@
 #include <WiFi.h>
 #include <time.h>
 
-#include "GetConfig.h"
+#include "WeatherSettings.h"
 
 // Load the header file with the generated *.proto code.
 #include "weather.h"
@@ -49,13 +49,13 @@
 
 // Setup global variables.
 WiFiClient client;
+WeatherSettings weather_settings(client);
 String string;
 int iteration_counter = 0;
 unsigned long update_time = 0;
 
 // Embedded Proto data message objects.
 weather::Data weather_data;
-weather::Settings weather_settings;
 
 // Embedded Proto buffers used for serializing and deserializing messages.
 constexpr int BUFFER_SIZE = 256;
@@ -145,12 +145,8 @@ void setup()
 
   connect_to_wifi();
 
-  // Set the default value in the settings object.
-  constexpr int DEFAULT_PERIOD_SEC = 5;
-  weather_settings.set_update_period_sec(DEFAULT_PERIOD_SEC);
-
   // Request the settings from the server.
-  get_config::request_settings_from_server(client, weather_settings);
+  weather_settings.request_from_server();
 }
 
 
@@ -256,7 +252,7 @@ void loop()
       send_weather_data();
       
       // Reset the timer for the next update.
-      update_time = millis() + (1000 * weather_settings.get_update_period_sec());
+      update_time = millis() + (1000 * weather_settings.get().get_update_period_sec());
     }
   }
   else 

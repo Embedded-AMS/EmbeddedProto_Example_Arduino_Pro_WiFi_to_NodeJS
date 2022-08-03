@@ -31,6 +31,8 @@
 #ifndef WEATHER_CONFIG_H
 #define WEATHER_CONFIG_H
 
+// From arduino include the Client base class.
+#include <WiFi.h>
 
 // Load the header file with the generated *.proto code.
 #include "weather.h"
@@ -39,24 +41,31 @@
 #include <ReadBufferFixedSize.h>
 #include <Errors.h>
 
-class WeatherConfig 
+class WeatherSettings 
 {
-  constexpr int BUFFER_SIZE = 256;
+  static constexpr int BUFFER_SIZE = 256;
+
+  // Set the default value in the settings object.
+  static constexpr int DEFAULT_PERIOD_SEC = 5;
 
   public:
-    WeatherConfig(Client& client);
-    ~WeatherConfig() = default;
+    WeatherSettings(Client& client);
+    ~WeatherSettings() = default;
     
+    bool request_from_server();
 
+    const weather::Settings& get() const;
 
   private:
     bool get_data_buffer_from_server();
   
-    Client& client_
+    Client& client_;
 
     EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> read_buffer_;
+
+    ::weather::Settings weather_settings_;
   
   
-} // End of namespace get_config
+}; // End of class get_config
 
 #endif // WEATHER_CONFIG_H
