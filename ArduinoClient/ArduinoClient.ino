@@ -106,17 +106,25 @@ void connect_to_wifi()
   
   auto status = WiFi.begin(SECRET_SSID, SECRET_PASS);
   
-  while(WL_CONNECTED != status)
+  if(WL_CONNECTED != status)
   {
     signal_wifi_disconnect();
-        
-    // wait 1 seconds for connection:
-    delay(1000);
-    
-    status = WiFi.begin(SECRET_SSID, SECRET_PASS);
+    Serial.println("Unable to connect to the network.");
   }
-  
-  Serial.println("You're connected to the network");
+  else 
+  {
+    Serial.println("You're connected to the network.");
+  }
+
+  // Check for the WiFi module.
+  if(WL_NO_SHIELD == WiFi.status())
+  {
+    Serial.println("Communication with WiFi module failed!");
+    while (true) 
+    {
+      signal_error();
+    }
+  }
 }
 
 
@@ -136,16 +144,6 @@ void setup()
   Serial.begin(9600);
 
   connect_to_wifi();
-  
-  // Check for the WiFi module.
-  if(WL_NO_SHIELD == WiFi.status())
-  {
-    Serial.println("Communication with WiFi module failed!");
-    while (true) 
-    {
-      signal_error();
-    }
-  }
 
   // Set the default value in the settings object.
   constexpr int DEFAULT_PERIOD_SEC = 5;
