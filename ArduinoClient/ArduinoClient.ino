@@ -32,13 +32,8 @@
 #include <time.h>
 
 #include "WeatherSettings.h"
+#include "WeatherData.h"
 
-// Load the header file with the generated *.proto code.
-#include "weather.h"
-
-// Load some files required from the Embedded Proto library.
-#include <WriteBufferFixedSize.h>
-#include <Errors.h>
 
 // Please enter your configurations in the settings.h file:
 //  * WiFi name (SSID)
@@ -50,17 +45,11 @@
 // Setup global variables.
 WiFiClient client;
 WeatherSettings weather_settings(client);
+WeatherData weather_data(client);
+
 String string;
 int iteration_counter = 0;
 unsigned long update_time = 0;
-
-// Embedded Proto data message objects.
-weather::Data weather_data;
-
-// Embedded Proto buffers used for serializing and deserializing messages.
-constexpr int BUFFER_SIZE = 256;
-EmbeddedProto::WriteBufferFixedSize<BUFFER_SIZE> write_buffer;
-
 
 
 // Use the Portenta RGB led to signal an error.
@@ -150,93 +139,6 @@ void setup()
 }
 
 
-// Read weather data from the sensors. In this example we generate semi random data.
-void get_sensor_data()
-{
-  const float time_sec = millis() / 1000.0F;
-  static int counter = 0;
-
-  ++counter;
-  
-  // Acttualy fake reading data
-  const float temperature = 21.0F + 4.5 * cos(6.28F * time_sec / 120.0F); 
-  weather_data.set_temperature(temperature);
-
-  const float humidity = 40.0F + 40.0F * sin(6.28F * time_sec / 160.0F);
-  weather_data.set_humidity(humidity);
-
-  const float air_pressure = 1024 + int(10*(counter % 40));
-  weather_data.set_air_pressure(air_pressure);
-
-  const float wind_speed = (16.0F + (3.0 * cos(6.28F * time_sec / 220.0F))) * random(9000, 11000)/10000;
-  weather_data.set_wind_speed(wind_speed);
-
-  const float wind_direction = (360.0F * (0.5 + 0.5*cos(6.28F * time_sec / 1000.0F))) * random(9000, 11000)/10000;
-  weather_data.set_wind_direction(wind_direction);
-}
-
-// Send weather data to the server.
-bool send_weather_data()
-{
-  bool result = false;
-  
-  // Serialize the weather data.
-  const auto serialize_result = weather_data.serialize(write_buffer);
-
-  // If all went well start connecting to the server.
-  if(EmbeddedProto::Error::NO_ERRORS == serialize_result)
-  {
-    if(client.connect(SERVER_IP, SERVER_PORT)) 
-    {
-      Serial.println("Sending N bytes to the server: " + String(write_buffer.get_size()));
-      for(int i = 0; i < write_buffer.get_size(); ++i)
-      {
-        const byte b = *(write_buffer.get_data() + i);
-        Serial.print(b);
-        Serial.print(" ");
-      }
-      Serial.println();
-      
-      client.println("POST /api/data HTTP/1.1");
-      client.println("Host: " + String(SERVER_IP) + "/api/data");
-      client.println("Content-Type: application/x-protobuf");
-      client.println("Connection: close");
-      client.println("Transfer-Encoding: chunked");
-      client.println("");
-      client.println(write_buffer.get_size(), HEX);
-      client.write(write_buffer.get_data(), write_buffer.get_size());
-      client.println();
-      client.println('0');
-      client.println();
-      
-      delay(500);
-
-      Serial.println();
-      while(client.available()) 
-      {
-          string = client.readStringUntil('\n');
-          Serial.println(string);
-          if(string.startsWith(""))
-          {
-            result = true;
-          }
-      }
-
-      client.stop();
-    }
-    else
-    {
-      Serial.println("Failed to connect to server.");
-      client.stop();
-    }
-  }
-
-  // Clear the write buffer after using it.
-  write_buffer.clear();
-
-  return result;
-}
-
 
 // The main loop of the program.
 void loop() 
@@ -247,9 +149,8 @@ void loop()
     
     if(millis() >= update_time) 
     {      
-      get_sensor_data();
-
-      send_weather_data();
+      weather_data.update();
+      weather_data.serialize_and_send();
       
       // Reset the timer for the next update.
       update_time = millis() + (1000 * weather_settings.get().get_update_period_sec());
