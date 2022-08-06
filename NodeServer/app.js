@@ -157,21 +157,17 @@ function server_home(req, res) {
   let filename;
   switch(req.url) {
     case "/":
-      filename = __dirname + "/home.html";
+      filename = __dirname + "/static/home.html";
       res.setHeader("Content-Type", "text/html");
       break;
     case "/favicon.ico":
-      filename = __dirname + "/favicon.svg";
+      filename = __dirname + "/static/favicon.svg";
       res.setHeader("Content-Type", "image/svg+xml");
       break;
     case "/weather_bundle.js":
-        filename = __dirname + "/weather_bundle.js";
-        res.setHeader("Content-Type", "text/javascript");
-      break;
-    case "/home_bundle.js":
-      filename = __dirname + "/home_bundle.js";
+      filename = __dirname + "/static/weather_bundle.js";
       res.setHeader("Content-Type", "text/javascript");
-    break;
+      break;
   }
 
   // Serve the requested file.
