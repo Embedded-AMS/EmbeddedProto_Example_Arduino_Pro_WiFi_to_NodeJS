@@ -16,6 +16,12 @@
         Weather with Embedded Proto
       </h1>
       <button class="bg-slate-200 p-2 rounded" x-data @click="$store.weather.get_data_from_server()">Get weather data</button>
+      <div x-data="{update_period:5, intervalID:''}" x-init="intervalID = setInterval(function() { $store.weather.get_data_from_server() }, 1000*update_period)">
+        <label for="update_period">Update period: </label>
+        <input type="number" x-model.number="update_period" x-on:change="clearInterval(intervalID); intervalID = setInterval(function() { $store.weather.get_data_from_server() }, 1000*update_period);" 
+          name="update_period" id="update_period" min="1" max="120" step="1">
+      </div>
+            
     </div>
 
     <!-- Charts -->
@@ -78,8 +84,7 @@
         let response = await fetch(server_url);
         this.lastData = weather.weather.DataHistory.decode(new Uint8Array(await response.arrayBuffer()));
         console.log("lastData: " + await this.lastData);
-      }
-
+      },
     }),
 
     Alpine.data('chartConfig', (initChartConstants = {}) => {
