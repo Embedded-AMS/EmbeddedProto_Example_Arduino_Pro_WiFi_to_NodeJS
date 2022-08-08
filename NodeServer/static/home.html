@@ -96,7 +96,11 @@
       logs: [],
 
       add(log_msg) {
-        this.logs.unshift(log_msg);
+        const d = new Date();
+        let hour = "0" + d.getHours(); hour = hour.substring(hour.length - 2);
+        let min = "0" + d.getMinutes(); min = min.substring(min.length - 2);
+        let sec = "0" + d.getSeconds(); sec = sec.substring(sec.length - 2);
+        this.logs.unshift( "[" + hour + ":" + min + ":" + sec + "] " + log_msg);
       }
     }),
     
