@@ -104,10 +104,21 @@
       lastData: {},
 
       async get_data_from_server() {
-        let server_url = window.location.href + "api/data";
-        let response = await fetch(server_url);
-        this.lastData = weather.weather.DataHistory.decode(new Uint8Array(await response.arrayBuffer()));
-        console.log("lastData: " + await this.lastData);
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 4000)
+        const server_url = window.location.href + "api/data";
+        try {
+          const response = await fetch(server_url);
+          if(!response.ok) {
+            throw new Error();
+          }
+          this.lastData = weather.weather.DataHistory.decode(new Uint8Array(await response.arrayBuffer()));
+          console.log("lastData: " + Alpine.raw(this.lastData));
+          Alpine.store('logging').add(`${this.lastData.data.length} new data points.`)
+        }
+        catch(err) {
+          Alpine.store('logging').add("Unable to fetch data from server.")
+        }
       },
     }),
 
@@ -137,11 +148,9 @@
         },
 
         update(dataHistoryMsg) {
+          // Only add data to the chart when we have received data:
           if((0 != Object.keys(dataHistoryMsg).length) && (0 < dataHistoryMsg.data.length))
           {
-            // Only add data to the chart when we have received data:
-            console.log(Alpine.raw(dataHistoryMsg));
-
             for (var i = 0; i < dataHistoryMsg.data.length; i++)
             {
               // Add data
