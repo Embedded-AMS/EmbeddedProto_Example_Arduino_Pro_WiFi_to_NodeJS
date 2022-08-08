@@ -9,20 +9,44 @@
 </head>
 
 <body>
-  <div class="flex flex-col item-center h-screen mx-20">
-    <!-- Navbar -->
-    <div class="flex-none">
-      <h1 class="text-2xl font-semibold py-4 px-2">
-        Weather with Embedded Proto
-      </h1>
-      <button class="bg-slate-200 p-2 rounded" x-data @click="$store.weather.get_data_from_server()">Get weather data</button>
-      <div x-data="{update_period:5, intervalID:''}" x-init="intervalID = setInterval(function() { $store.weather.get_data_from_server() }, 1000*update_period)">
-        <label for="update_period">Update period: </label>
-        <input type="number" x-model.number="update_period" x-on:change="clearInterval(intervalID); intervalID = setInterval(function() { $store.weather.get_data_from_server() }, 1000*update_period);" 
-          name="update_period" id="update_period" min="1" max="120" step="1">
+
+  <!-- Navbar -->
+  <header>
+    <nav class="w-full py-4 md:py-0 px-4 text-lg text-gray-700 bg-slate-100">
+      <div class="flex flex-wrap items-center justify-between mx-20">
+        <!-- Logo -->
+        <div>
+          <a href="https://embeddedproto.com/" class="x-brand img">
+            <img width="150px" src="//embeddedproto.com/wp-content/uploads/2022/04/Embedded_Proto.png" alt="Embedded Proto">
+          </a>
+        </div>
+        
+        <!-- Title -->
+        <div class="basis-5/8 place-self-center">
+          <h1 class="text-4xl font-semibold py-4 px-2">
+            The Weather
+          </h1>
+        </div>
+        
+        <!-- Input for update period -->
+        <div>
+          <div x-data="{update_period:5, intervalID:''}" 
+               x-init="intervalID = setInterval(function() { $store.weather.get_data_from_server() }, 1000*update_period)">
+            <label for="update_period">Update period [sec.]: </label>
+            <input type="number" class="box border rounded shadow p-1" 
+                maxlength="3" size="3" x-model.number="update_period" 
+                x-on:change.debounce="clearInterval(intervalID); 
+                                      intervalID = setInterval(function() { $store.weather.get_data_from_server() }, 1000*update_period);
+                                      $store.logging.add(`Update period changed to: ${update_period} seconds.`)" 
+                name="update_period" id="update_period" min="1" max="120" step="1">
+          </div>
+        </div>
       </div>
-            
-    </div>
+    </nav>
+ </header>
+
+  <!-- Centred content -->
+  <div class="flex flex-col item-center h-full mx-20">
 
     <!-- Charts -->
     <div class="flex-grow p-4" >
@@ -69,10 +93,10 @@
   document.addEventListener('alpine:init', () => {
     
     Alpine.store('logging', {    
-      logs: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+      logs: [],
 
       add(log_msg) {
-        this.logs.push(log_msg);
+        this.logs.unshift(log_msg);
       }
     }),
     
