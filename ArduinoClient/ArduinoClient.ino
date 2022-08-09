@@ -50,7 +50,7 @@ WeatherData weather_data(client);
 String string;
 int iteration_counter = 0;
 unsigned long update_time = 0;
-
+unsigned long now_time = 0;
 
 // Use the Portenta RGB led to signal an error.
 void signal_error()
@@ -143,17 +143,18 @@ void setup()
 // The main loop of the program.
 void loop() 
 {
+  now_time = millis();
   if(WL_CONNECTED == WiFi.status())
-  {
+  {    
     signal_oke();
     
-    if(millis() >= update_time) 
+    if(now_time >= update_time) 
     {      
       weather_data.update();
       weather_data.serialize_and_send();
       
       // Reset the timer for the next update.
-      update_time = millis() + (1000 * weather_settings.get().get_update_period_sec());
+      update_time = now_time + (1000 * weather_settings.get().get_update_period_sec());
     }
   }
   else 
