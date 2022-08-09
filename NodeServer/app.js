@@ -112,7 +112,7 @@ function server_api_data(req, res) {
     let receive_buffer = Buffer.alloc(0);
 
     req.on('data', function(chunk) {
-      let temp = receive_buffer;
+      const temp = receive_buffer.slice();
       receive_buffer = new Buffer.concat([temp, chunk]);
     })
     req.on('end', function() {
