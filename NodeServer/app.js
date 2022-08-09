@@ -26,8 +26,8 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
   SettingsMessage = root.lookupType("weather.Settings");
   data_history = DataHistoryMessage.create();
 
-  // Set the default settings, a 2 second update period.
-  const default_settings = {updatePeriodSec: 2}
+  // Set the default settings, a 5 second update period.
+  const default_settings = {updatePeriodSec: 5}
   let errMsg = SettingsMessage.verify(default_settings);
   if(errMsg) {
       throw Error(errMsg);
