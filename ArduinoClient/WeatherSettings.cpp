@@ -85,6 +85,12 @@ bool WeatherSettings::get_data_buffer_from_server()
     client_.println("Host: " + String(SERVER_IP) + "/api/settings");
     client_.println("Connection: close");
     client_.println();
+
+    Serial.println();
+    Serial.println("GET /api/settings HTTP/1.1");
+    Serial.println("Host: " + String(SERVER_IP) + "/api/settings");
+    Serial.println("Connection: close");
+    Serial.println();
            
     String string = client_.readStringUntil('\n'); 
     Serial.println(string); // HTTP/1.1 200 OK      
@@ -99,9 +105,9 @@ bool WeatherSettings::get_data_buffer_from_server()
 
       // After the empty line the data lenght follows.
       string = client_.readStringUntil('\n'); 
+      Serial.println(string);
       const int n_bytes_data = string.toInt();
-      Serial.println("n_bytes_data: " + String(n_bytes_data));
-
+      
       // Read the data bytes
       const int n_bytes_received = client_.readBytes(read_buffer_.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
 
@@ -112,7 +118,8 @@ bool WeatherSettings::get_data_buffer_from_server()
         Serial.println(string);
       }
 
-      // Print out the data human redable.
+      // Print out the data human redable.      
+      Serial.println("n_bytes_data: " + String(n_bytes_data));
       Serial.println("n_bytes_received: " + String(n_bytes_received));
       for(int i = 0; i < n_bytes_received; ++i)
       {

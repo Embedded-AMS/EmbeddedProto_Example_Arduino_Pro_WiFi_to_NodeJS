@@ -96,6 +96,18 @@ bool WeatherData::post()
       Serial.print(" ");
     }
     Serial.println();
+
+    Serial.println("POST /api/data HTTP/1.1");
+    Serial.println("Host: " + String(SERVER_IP) + "/api/data");
+    Serial.println("Content-Type: application/x-protobuf");
+    Serial.println("Connection: close");
+    Serial.println("Transfer-Encoding: chunked");
+    Serial.println("");
+    Serial.println(write_buffer_.get_size(), HEX);
+    Serial.write(write_buffer_.get_data(), write_buffer_.get_size());
+    Serial.println();
+    Serial.println('0');
+    Serial.println();
     
     client_.println("POST /api/data HTTP/1.1");
     client_.println("Host: " + String(SERVER_IP) + "/api/data");
@@ -111,6 +123,9 @@ bool WeatherData::post()
     
     // Next wait for the response.
     Serial.println();
+
+    delay(500);
+    
     while(client_.available()) 
     {
         String string = client_.readStringUntil('\n');
