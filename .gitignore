@@ -52,3 +52,5 @@ Thumbs.db
 NodeServer/static/weather_bundle.js
 NodeServer/weather.js
 NodeServer/tmp.txt.js
+
+ArduinoClient/weather.h
