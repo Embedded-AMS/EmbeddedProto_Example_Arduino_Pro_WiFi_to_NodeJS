@@ -120,11 +120,7 @@ function server_api(req, res) {
 
 // Process POST and GET requests to the weather settings API.
 function server_api_settings(req, res) {
-  if('POST' == req.method) {
-    console.log("/api/settings POST")
-    // TODO post
-  }
-  else {
+  if('GET' == req.method) {
     console.log("/api/settings GET")
     // Get request, return the current settings
     res.setHeader("Content-Type", "application/x-protobuf");
@@ -132,6 +128,11 @@ function server_api_settings(req, res) {
     let settings_buffer = SettingsMessage.encode(weather_settings).finish();
     console.log(`settings_buffer = ${Array.prototype.toString.call(settings_buffer)}`);
     res.end(settings_buffer);
+  }
+  else {
+    // Return an error in any other case.
+    res.writeHead(404);
+    res.end();
   }
 }
 
@@ -167,7 +168,7 @@ function server_api_data(req, res) {
       res.end();
     })
   }
-  else {
+  else if('GET' == req.method) {
     console.log("/api/data GET");
     res.setHeader("Content-Type", "application/x-protobuf");
     res.writeHead(200);
@@ -178,6 +179,11 @@ function server_api_data(req, res) {
 
     // Clear the data.
     data_history.data = [];
+  }
+  else {
+    // Return an error in any other case.
+    res.writeHead(404);
+    res.end();
   }
 }
 
