@@ -131,7 +131,7 @@ function server_api_settings(req, res) {
   }
   else {
     // Return an error in any other case.
-    res.writeHead(404);
+    res.writeHead(405);
     res.end();
   }
 }
@@ -182,7 +182,7 @@ function server_api_data(req, res) {
   }
   else {
     // Return an error in any other case.
-    res.writeHead(404);
+    res.writeHead(405);
     res.end();
   }
 }
@@ -205,6 +205,10 @@ function server_home(req, res) {
         filename = __dirname + "/static/weather_bundle.js";
         res.setHeader("Content-Type", "text/javascript");
         break;
+      default:
+        res.writeHead(404);
+        res.end();
+        return
     }
 
     // Serve the requested file.
