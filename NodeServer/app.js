@@ -189,32 +189,38 @@ function server_api_data(req, res) {
 
 // Serve files related to the homepage.
 function server_home(req, res) {
+  if('GET' == req.method) {
+    // Depending on the request serve different files related to the homepage.
+    let filename;
+    switch(req.url) {
+      case "/":
+        filename = __dirname + "/static/home.html";
+        res.setHeader("Content-Type", "text/html");
+        break;
+      case "/favicon.ico":
+        filename = __dirname + "/static/favicon.svg";
+        res.setHeader("Content-Type", "image/svg+xml");
+        break;
+      case "/weather_bundle.js":
+        filename = __dirname + "/static/weather_bundle.js";
+        res.setHeader("Content-Type", "text/javascript");
+        break;
+    }
 
-  // Depending on the request serve different files related to the homepage.
-  let filename;
-  switch(req.url) {
-    case "/":
-      filename = __dirname + "/static/home.html";
-      res.setHeader("Content-Type", "text/html");
-      break;
-    case "/favicon.ico":
-      filename = __dirname + "/static/favicon.svg";
-      res.setHeader("Content-Type", "image/svg+xml");
-      break;
-    case "/weather_bundle.js":
-      filename = __dirname + "/static/weather_bundle.js";
-      res.setHeader("Content-Type", "text/javascript");
-      break;
+    // Serve the requested file.
+    fs.readFile(filename)
+        .then(contents => {
+            res.writeHead(200);
+            res.end(contents);
+        })
+        .catch(fs_err => {
+            res.writeHead(500);
+            res.end(fs_err);
+        });
   }
-
-  // Serve the requested file.
-  fs.readFile(filename)
-      .then(contents => {
-          res.writeHead(200);
-          res.end(contents);
-      })
-      .catch(fs_err => {
-          res.writeHead(500);
-          res.end(fs_err);
-      });
+  else {
+    // Return an error in any other case.
+    res.writeHead(405);
+    res.end();
+  }
 }
