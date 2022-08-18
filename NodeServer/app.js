@@ -61,7 +61,7 @@ protobuf.load("../Proto/weather.proto", function(err, root) {
   const default_settings = {updatePeriodSec: 5}
   let errMsg = SettingsMessage.verify(default_settings);
   if(errMsg) {
-      throw Error(errMsg);
+    throw Error(errMsg);
   }
   else {
     weather_settings = SettingsMessage.create(default_settings);
