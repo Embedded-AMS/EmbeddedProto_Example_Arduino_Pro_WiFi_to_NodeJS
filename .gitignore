@@ -6,6 +6,7 @@
 # Node artifact files
 node_modules/
 dist/
+package-lock.json
 
 # Compiled Java class files
 *.class
@@ -48,3 +49,8 @@ Thumbs.db
 *.mov
 *.wmv
 
+NodeServer/static/weather_bundle.js
+NodeServer/weather.js
+NodeServer/tmp.txt.js
+
+ArduinoClient/weather.h
