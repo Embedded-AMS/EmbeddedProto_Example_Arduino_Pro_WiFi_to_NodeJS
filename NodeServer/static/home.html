@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<head>
+  <title>Weather Dashboard</title>
+  <script type="module" src="./weather_bundle.js" defer></script>
+  <script src="//unpkg.com/alpinejs" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <header>
+    <nav class="w-full py-4 md:py-0 px-4 text-lg text-gray-700 bg-slate-100">
+      <div class="flex flex-wrap items-center justify-between mx-20">
+        <!-- Logo -->
+        <div>
+          <a href="https://embeddedproto.com/" class="x-brand img">
+            <img width="150px" src="//embeddedproto.com/wp-content/uploads/2022/04/Embedded_Proto.png" alt="Embedded Proto">
+          </a>
+        </div>
+        
+        <!-- Title -->
+        <div class="basis-5/8 place-self-center">
+          <h1 class="text-4xl font-semibold py-4 px-2">
+            The Weather
+          </h1>
+        </div>
+        
+        <!-- Input for update period -->
+        <div>
+          <div x-data="{update_period:5, intervalID:''}" 
+               x-init="intervalID = setInterval(function() { $store.weather.get_data_from_server() }, 1000*update_period)">
+            <label for="update_period">Update period [sec.]: </label>
+            <input type="number" class="box border rounded shadow p-1" 
+                maxlength="3" size="3" x-model.number="update_period" 
+                x-on:change.debounce="clearInterval(intervalID); 
+                                      intervalID = setInterval(function() { $store.weather.get_data_from_server() }, 1000*update_period);
+                                      $store.logging.add(`Update period changed to: ${update_period} seconds.`)" 
+                name="update_period" id="update_period" min="1" max="120" step="1">
+          </div>
+        </div>
+      </div>
+    </nav>
+ </header>
+
+  <!-- Centred content -->
+  <div class="flex flex-col item-center h-full mx-20">
+
+    <!-- Charts -->
+    <div class="flex-grow p-4" >
+      <div class="flex flex-wrap">
+        <template x-for="cc in chartConstants" :key="cc.varName" x-init="$watch('$store.weather.lastData', lastData => console.log(Alpine.raw(lastData)))">
+          <div class="box border rounded shadow p-4 m-4 bg-slate-100" x-data="chartConfig(cc)">
+            <div class="box border rounded shadow p-2 bg-white">
+              <canvas height="180" :id="cc.varName" x-init="allocate()" x-effect="update($store.weather.lastData)"></canvas>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Log window -->
+    <div class="h-48">
+      <div class="box border rounded flex flex-col shadow">
+        <div class="flex-none bg-slate-200 px-3 py-2 border-b">
+          <h3 class="text-sm font-medium">Log Window</h3>
+        </div>
+        <div class="flex-grow bg-slate-100 p-2 h-32">
+          <div class="bg-white rounded p-2 h-full overflow-y-scroll shadow">
+            <template x-init="console.log('Log window template: '); console.log($store.logging.logs)" x-for="log in $store.logging.logs">
+              <p x-text="log"></p>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  
+</body>
+
+<!-- Footer -->
+<div>
+  <div class="w-full py-4 md:py-0 px-4 text-gray-700 bg-slate-100">
+    <div class="flex flex-row h-36 mx-20 justify-between items-center">
+      <div class="flex-none"></div>
+      <div class="flex-initial ">
+        <p>Embedded Proto is a product of <b>Embedded AMS B.V.</b></p>
+        <p>Copyrights &copy; 2022. All rights reserved.</p>
+      </div>
+      <div class="flex-initial"></div>
+    </div>
+  </div>
+</div>
+
+
+<script defer>
+  // Various constants related to each variable.
+  const chartConstants = [{ varName: 'temperature', title: 'Temperature', }, 
+                          { varName: 'humidity', title: 'Humidity', },
+                          { varName: 'airPressure', title: 'Air Pressure', },
+                          { varName: 'windSpeed', title: "Wind Speed", },
+                          { varName: 'windDirection', title: "Wind Direction", },
+                        ]
+
+  document.addEventListener('alpine:init', () => {
+    
+    Alpine.store('logging', {    
+      logs: [],
+
+      add(log_msg) {
+        const d = new Date();
+        let hour = "0" + d.getHours(); hour = hour.substring(hour.length - 2);
+        let min = "0" + d.getMinutes(); min = min.substring(min.length - 2);
+        let sec = "0" + d.getSeconds(); sec = sec.substring(sec.length - 2);
+        this.logs.unshift( "[" + hour + ":" + min + ":" + sec + "] " + log_msg);
+      }
+    }),
+    
+    Alpine.store('weather', {
+      lastData: {},
+
+      async get_data_from_server() {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 4000)
+        const server_url = window.location.href + "api/data";
+        try {
+          const response = await fetch(server_url);
+          if(!response.ok) {
+            throw new Error();
+          }
+          this.lastData = weather.weather.DataHistory.decode(new Uint8Array(await response.arrayBuffer()));
+          console.log("lastData: " + Alpine.raw(this.lastData));
+          Alpine.store('logging').add(`${this.lastData.data.length} new data points.`)
+        }
+        catch(err) {
+          Alpine.store('logging').add("Unable to fetch data from server.")
+        }
+      },
+    }),
+
+    Alpine.data('chartConfig', (initChartConstants = {}) => {
+      let chartObject;
+      var labelCounter = 0;
+
+      return {
+        chartConstants: initChartConstants,
+
+        allocate() {
+          // In the init function the getElementById will return the wrong ID. This function is 
+          // called later when the correct ID is set.
+          console.log('allocate');
+          chartObject = new Chart(document.getElementById(this.chartConstants.varName), {
+            type: 'line',
+            data: {
+              datasets: [{
+                label: this.chartConstants.title,
+                backgroundColor: 'rgb(0, 168, 142)',
+                borderColor: 'rgb(130, 195, 65)',
+                data: [],
+              }]
+            },
+            options: {}
+          });
+        },
+
+        update(dataHistoryMsg) {
+          // Only add data to the chart when we have received data:
+          if((0 != Object.keys(dataHistoryMsg).length) && (0 < dataHistoryMsg.data.length))
+          {
+            for (var i = 0; i < dataHistoryMsg.data.length; i++)
+            {
+              // Add data
+              chartObject.data.labels.push(labelCounter);
+              labelCounter += 1;
+              const varValue = Alpine.raw(dataHistoryMsg.data[i])[this.chartConstants.varName];
+              // console.log(varValue)
+              chartObject.data.datasets.forEach((dataset) => {
+                dataset.data.push(varValue);
+              });
+            }
+
+            if(0 != dataHistoryMsg.data.length) {
+              chartObject.update();
+            }
+          }
+        },
+      }
+    })
+  })
+</script>
+
+</html>
