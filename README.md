@@ -20,12 +20,10 @@ You can read the full tutorial [here](https://embeddedproto.com/a-simple-arduino
 
 # Requirements
 An Arduino with WiFi. An Arduino Pro Portenta H7 was used in this example.
-Arduino IDE, we used version 1.8.19.
-NPM, we used version 7.11.2.
-NodeJS, we used version 10.19.0.
-Embedded Proto version 3.2.0 (included as a submodule). 
-
-The requirements of Embedded Proto are listed [here](https://github.com/Embedded-AMS/EmbeddedProto/blob/master/README.md).
+* Arduino IDE, we used version 1.8.19.
+* NPM, we used version 7.11.2.
+* NodeJS, we used version 10.19.0.
+* Embedded Proto version 3.2.0 (included as a submodule). The requirements of Embedded Proto are listed [here](https://github.com/Embedded-AMS/EmbeddedProto/blob/master/README.md).
 
 # Installation
 This is the short installation instruction. For instructions and explanations, please read the full [tutorial](https://embeddedproto.com/a-simple-arduino-iot-example-with-protobuf/).
