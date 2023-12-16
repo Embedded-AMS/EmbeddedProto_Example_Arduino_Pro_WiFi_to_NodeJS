@@ -109,7 +109,7 @@ bool WeatherSettings::get_data_buffer_from_server()
       const int n_bytes_data = string.toInt();
       
       // Read the data bytes
-      const int n_bytes_received = client_.readBytes(read_buffer_.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
+      const int n_bytes_received = client_.readBytes(read_buffer_.get_data(), min(n_bytes_data, BUFFER_SIZE));
 
       // Print out any more data from the server.
       while(client_.available())
@@ -123,7 +123,7 @@ bool WeatherSettings::get_data_buffer_from_server()
       Serial.println("n_bytes_received: " + String(n_bytes_received));
       for(int i = 0; i < n_bytes_received; ++i)
       {
-        Serial.print(*(read_buffer_.get_data_array() + i), HEX);
+        Serial.print(*(read_buffer_.get_data() + i), HEX);
         Serial.print(" "); 
       }
       Serial.println(""); 
