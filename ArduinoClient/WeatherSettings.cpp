@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2024 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -23,8 +23,8 @@
  *    info at EmbeddedProto dot com
  *
  *  Postal address:
- *    Johan Huizingalaan 763a
- *    1066 VH, Amsterdam
+ *    Atoomweg 2
+ *    1627 LE, Hoorn
  *    the Netherlands
  */
 
@@ -109,7 +109,7 @@ bool WeatherSettings::get_data_buffer_from_server()
       const int n_bytes_data = string.toInt();
       
       // Read the data bytes
-      const int n_bytes_received = client_.readBytes(read_buffer_.get_data_array(), min(n_bytes_data, BUFFER_SIZE));
+      const int n_bytes_received = client_.readBytes(read_buffer_.get_data(), min(n_bytes_data, BUFFER_SIZE));
 
       // Print out any more data from the server.
       while(client_.available())
@@ -123,7 +123,7 @@ bool WeatherSettings::get_data_buffer_from_server()
       Serial.println("n_bytes_received: " + String(n_bytes_received));
       for(int i = 0; i < n_bytes_received; ++i)
       {
-        Serial.print(*(read_buffer_.get_data_array() + i), HEX);
+        Serial.print(*(read_buffer_.get_data() + i), HEX);
         Serial.print(" "); 
       }
       Serial.println(""); 
