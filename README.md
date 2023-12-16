@@ -4,7 +4,7 @@
 
 Embedded Proto is a product of Embedded AMS B.V. For more information about Embedded Proto please visit [EmbeddedProto.com](https://EmbeddedProto.com).
 
-Copyrights 2020-2022 Embedded AMS B.V. Amsterdam, [www.EmbeddedAMS.nl](https://www.EmbeddedAMS.nl), [info@EmbeddedAMS.nl](mailto:info@EmbeddedAMS.nl)
+Copyrights 2020-2024 Embedded AMS B.V. Amsterdam, [www.EmbeddedAMS.nl](https://www.EmbeddedAMS.nl), [info@EmbeddedAMS.nl](mailto:info@EmbeddedAMS.nl)
 
 ![alt text](https://embeddedproto.com/wp-content/uploads/2022/08/ArduinoPro_Example_Featured_Image.jpg "Arduino to Server")
 
@@ -23,7 +23,7 @@ An Arduino with WiFi. An Arduino Pro Portenta H7 was used in this example.
 * Arduino IDE, we used version 1.8.19.
 * NPM, we used version 7.11.2.
 * NodeJS, we used version 10.19.0.
-* Embedded Proto version 3.2.0 (included as a submodule). The requirements of Embedded Proto are listed [here](https://github.com/Embedded-AMS/EmbeddedProto/blob/master/README.md).
+* Embedded Proto version 3.4.1 (included as a submodule). The requirements of Embedded Proto are listed [here](https://github.com/Embedded-AMS/EmbeddedProto/blob/master/README.md).
 
 # Installation
 This is the short installation instruction. For instructions and explanations, please read the full [tutorial](https://embeddedproto.com/a-simple-arduino-iot-example-with-protobuf/).
