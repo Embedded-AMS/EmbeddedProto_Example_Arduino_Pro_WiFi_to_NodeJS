@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2020-2024 Embedded AMS B.V. - All Rights Reserved
+# Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
@@ -31,12 +31,14 @@
 import subprocess
 import argparse
 from os import chdir
+import os
+import platform
 
 # Update the submodule Embedded Proto before importing its setup script.
 subprocess.run(["git", "submodule", "init"], check=True, capture_output=True)
 subprocess.run(["git", "submodule", "update"], check=True, capture_output=True)
 
-from EmbeddedProto import setup as EPSetup
+from EmbeddedProto import install as EPInstall
 
 
 ####################################################################################
@@ -47,23 +49,27 @@ if __name__ == "__main__":
                                                  "code in your project.")
 
     parser.add_argument('-g', '--generate', action='store_true', 
-                        help="Do not run the Embedded Proto setup. Only generate the source based on *.proto files. "
+                        help="Do not run the Embedded Proto install. Only generate the source based on *.proto files. "
                              "Use this after changing weather.proto.")
 
-    EPSetup.add_parser_arguments(parser)
-    EPSetup.display_feedback()
+    EPInstall.add_parser_arguments(parser)
+    EPInstall.display_feedback()
     args = parser.parse_args()
 
     
-    chdir("./EmbeddedProto")
-    
     if not args.generate:
-        # Run the setup script of Embedded Proto it self.
-        EPSetup.run(args)
+        # Run the install script of Embedded Proto it self.
+        chdir("./EmbeddedProto")
+        EPInstall.run(args)
+        chdir("..")
 
-    # Generate the source file based on weather.proto
-    subprocess.run(["protoc", "--plugin=protoc-gen-eams=protoc-gen-eams", "-I../Proto", "--eams_out=../ArduinoClient",
-                    "../Proto/weather.proto"], check=True, capture_output=True)
+    # Generate the source file based on weather.proto. The embeddedproto command lives in the virtual environment of
+    # the submodule. It runs the protobuf compiler which came with the package and adds the plugin for you.
+    if "Windows" == platform.system():
+        embeddedproto = os.path.join("EmbeddedProto", "venv", "Scripts", "embeddedproto.exe")
+    else:
+        embeddedproto = os.path.join("EmbeddedProto", "venv", "bin", "embeddedproto")
+    subprocess.run([embeddedproto, "-I./Proto", "--eams_out=./ArduinoClient", "./Proto/weather.proto"], check=True)
 
     # If the script did not exit before here we have completed it with success.
     print("Setup completed with success!")
