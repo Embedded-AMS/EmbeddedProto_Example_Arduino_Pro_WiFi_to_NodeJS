@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2024 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -30,6 +30,9 @@
 
 #include <WiFi.h>
 #include <time.h>
+
+// Include the Embedded Proto library here so the Arduino IDE adds it to the build.
+#include <EmbeddedProto.h>
 
 #include "WeatherSettings.h"
 #include "WeatherData.h"

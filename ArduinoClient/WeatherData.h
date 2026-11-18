@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2024 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -39,8 +39,8 @@
 #include "weather.h"
 
 // Load some files required from the Embedded Proto library.
-#include <WriteBufferFixedSize.h>
-#include <Errors.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
+#include <EmbeddedProto/Errors.h>
 
 class WeatherData
 {
